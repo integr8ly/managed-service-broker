@@ -1,0 +1,6 @@
+# Manged Service Broker
+
+**status:** PoC
+
+This broker helps you provide shared and managed services on OpenShift. It works with the Shared Service Operator 
+ 
