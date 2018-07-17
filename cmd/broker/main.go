@@ -1,19 +1,3 @@
-/*
-Copyright 2016 The Kubernetes Authors.
-
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-    http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-*/
-
 package main
 
 import (
@@ -26,11 +10,12 @@ import (
 	"strconv"
 	"syscall"
 
-
-	"github.com/aerogear/managed-services-broker/pkg/server"
-	"github.com/aerogear/managed-services-broker/pkg/controller"
-	"github.com/aerogear/managed-services-broker/pkg"
+	"github.com/aerogear/managed-services-broker/pkg/broker"
+	"github.com/aerogear/managed-services-broker/pkg/broker/controller"
+	"github.com/aerogear/managed-services-broker/pkg/broker/server"
+	"github.com/operator-framework/operator-sdk/pkg/k8sclient"
 	glog "github.com/sirupsen/logrus"
+	"k8s.io/client-go/dynamic"
 )
 
 var options struct {
@@ -41,8 +26,8 @@ var options struct {
 
 func init() {
 	flag.IntVar(&options.Port, "port", 8005, "use '--port' option to specify the port for broker to listen on")
-	flag.StringVar(&options.TLSCert, "tlsCert", "", "base-64 encoded PEM block to use as the certificate for TLS. If '--tlsCert' is used, then '--tlsKey' must also be used. If '--tlsCert' is not used, then TLS will not be used.")
-	flag.StringVar(&options.TLSKey, "tlsKey", "", "base-64 encoded PEM block to use as the private key matching the TLS certificate. If '--tlsKey' is used, then '--tlsCert' must also be used")
+	flag.StringVar(&options.TLSCert, "tlsCert", os.Getenv("TLS_CERT"), "base-64 encoded PEM block to use as the certificate for TLS. If '--tlsCert' is used, then '--tlsKey' must also be used. If '--tlsCert' is not used, then TLS will not be used.")
+	flag.StringVar(&options.TLSKey, "tlsKey", os.Getenv("TLS_KEY"), "base-64 encoded PEM block to use as the private key matching the TLS certificate. If '--tlsKey' is used, then '--tlsCert' must also be used")
 	flag.Parse()
 }
 
@@ -60,9 +45,23 @@ func run() error {
 	return runWithContext(ctx)
 }
 
+func getSharedResourceClient(namespace string) (dynamic.ResourceInterface, error) {
+	apiVersion := "aerogear.org/v1alpha1"
+	kind := "SharedService"
+	sharedResourceClient, _, err := k8sclient.GetResourceClient(apiVersion, kind, namespace)
+	return sharedResourceClient, err
+}
+
+func getSharedServiceSliceResourceClient(namespace string) (dynamic.ResourceInterface, error) {
+	apiVersion := "aerogear.org/v1alpha1"
+	kind := "SharedServiceSlice"
+	sharedResourceClient, _, err := k8sclient.GetResourceClient(apiVersion, kind, namespace)
+	return sharedResourceClient, err
+}
+
 func runWithContext(ctx context.Context) error {
 	if flag.Arg(0) == "version" {
-		fmt.Printf("%s/%s\n", path.Base(os.Args[0]), pkg.VERSION)
+		fmt.Printf("%s/%s\n", path.Base(os.Args[0]), broker.VERSION)
 		return nil
 	}
 	if (options.TLSCert != "" || options.TLSKey != "") &&
@@ -71,10 +70,22 @@ func runWithContext(ctx context.Context) error {
 		return nil
 	}
 
-	addr := ":" + strconv.Itoa(options.Port)
-	ctrlr := controller.CreateController()
+	namespace := os.Getenv("POD_NAMESPACE")
 
+	addr := ":" + strconv.Itoa(options.Port)
 	var err error
+
+	sharedResourceClient, err := getSharedResourceClient(namespace)
+	if err != nil {
+		return err
+	}
+	sharedServiceSliceClient, err := getSharedServiceSliceResourceClient(namespace)
+	if err != nil {
+		return err
+	}
+	ctrlr := controller.CreateController(namespace, sharedResourceClient, sharedServiceSliceClient)
+	ctrlr.Catalog()
+
 	if options.TLSCert == "" && options.TLSKey == "" {
 		err = server.Run(ctx, addr, ctrlr)
 	} else {

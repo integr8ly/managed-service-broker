@@ -1,0 +1,20 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: managed-services
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      name: managed-services
+  template:
+    metadata:
+      labels:
+        name: managed-services
+    spec:
+      containers:
+        - name: managed-services
+          image: aerogear/managed-service-operator:1.0.0
+          command:
+          - managed-services
+          imagePullPolicy: Always
