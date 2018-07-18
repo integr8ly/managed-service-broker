@@ -3,7 +3,7 @@ DOCKERORG = aerogear
 BROKER_IMAGE_NAME = managed-services-broker
 
 .phony: push_broker
-push_broker:
+push:
 	docker push $(DOCKERORG)/$(BROKER_IMAGE_NAME):$(TAG)
 
 .phony: build_image

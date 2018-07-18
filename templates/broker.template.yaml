@@ -18,7 +18,7 @@ objects:
         service: msb
       ports:
       - protocol: TCP
-        port: 443
+        port: 80
         targetPort: 8080
 
   - apiVersion: extensions/v1beta1
@@ -41,7 +41,7 @@ objects:
         spec:
           containers:
           - name: managed-services-broker
-            image: ${IMAGE_NAME}
+            image: ${IMAGE_ORG}/${IMAGE_NAME}:${IMAGE_TAG}
             imagePullPolicy: ${IMAGE_PULL_POLICY}
             args:
             - --port
@@ -96,9 +96,17 @@ parameters:
     description: Namespace of the project that is being deployed to
     value: "managed-services-broker"
 
+  - name: IMAGE_ORG
+    description: Name of the broker image org
+    value: aerogear
+
   - name: IMAGE_NAME
     description: Name of the broker image
-    value: "aerogear/managed-services-broker:1.0.0"
+    value: "managed-services-broker"
+
+  - name: IMAGE_TAG
+    description: Tag of the broker image
+    value: "1.0.0"
 
   - name: IMAGE_PULL_POLICY
     value: "Always"

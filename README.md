@@ -6,8 +6,8 @@ An OpenShift template in the `templates` directory of this repo is used to deplo
 
 ```sh
 # Build and push the broker image
-make build_broker_image
-make push_broker 
+make build_image <DOCKERORG=yourDockerOrg>
+make push <DOCKERORG=yourDockerOrg>
 
 # Switch to a new project
 oc new-project managed-services-broker
@@ -16,7 +16,7 @@ oc new-project managed-services-broker
 oc create -f deploy/rbac.yaml
 
 # Process the template and create the broker deployment
-oc process -f templates/broker.template.yaml | oc create -f -
+oc process -f templates/broker.template.yaml <-p IMAGE_ORG=yourDockerOrg> | oc create -f -
 
 # Verify that the broker has been registered correctly
 svcat get brokers
