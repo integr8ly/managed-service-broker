@@ -1,0 +1,15 @@
+apiVersion: "aerogear.org/v1alpha1"
+kind: "SharedServicePlan"
+metadata:
+  name: "keycloak-slice-plan"
+spec:
+  service: keycloak
+  name: keycloak slice
+  id: keycloak-default-slice
+  description: Slice of shared Keycloak service
+  free: True
+  bind_params:
+    Username: string
+    ClientType: string
+  provision_params:
+    CUSTOM_REALM_NAME: string

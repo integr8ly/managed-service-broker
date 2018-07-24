@@ -2,7 +2,11 @@ TAG = 1.0.0
 DOCKERORG = aerogear
 BROKER_IMAGE_NAME = managed-services-broker
 
-.phony: push_broker
+.phony: build_and_push
+build_and_push: build_image push
+
+
+.phony: push
 push:
 	docker push $(DOCKERORG)/$(BROKER_IMAGE_NAME):$(TAG)
 

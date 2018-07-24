@@ -69,17 +69,19 @@ type userProvidedController struct {
 	instanceMap              map[string]*userProvidedServiceInstance
 	sharedServiceClient      dynamic.ResourceInterface
 	sharedServiceSliceClient dynamic.ResourceInterface
+	sharedServicePlanClient  dynamic.ResourceInterface
 	brokerNS                 string
 }
 
 // CreateController creates an instance of a User Provided service broker controller.
-func CreateController(brokerNS string, sharedServiceClient, sharedServiceSlice dynamic.ResourceInterface) Controller {
+func CreateController(brokerNS string, sharedServiceClient, sharedServiceSliceClient, sharedServicePlanClient dynamic.ResourceInterface) Controller {
 	var instanceMap = make(map[string]*userProvidedServiceInstance)
 	return &userProvidedController{
 		instanceMap:              instanceMap,
 		sharedServiceClient:      sharedServiceClient,
 		brokerNS:                 brokerNS,
-		sharedServiceSliceClient: sharedServiceSlice,
+		sharedServiceSliceClient: sharedServiceSliceClient,
+		sharedServicePlanClient:  sharedServicePlanClient,
 	}
 }
 
@@ -95,61 +97,88 @@ func sharedServiceFromRunTime(object runtime.Object) (*v1alpha1.SharedService, e
 	return s, nil
 }
 
-func brokerServiceFromSharedService(sharedService *v1alpha1.SharedService) *brokerapi.Service {
+func sharedServicePlanFromRunTime(object runtime.Object) (*v1alpha1.SharedServicePlan, error) {
+	bytes, err := object.(*unstructured.Unstructured).MarshalJSON()
+	if err != nil {
+		return nil, err
+	}
+	s := &v1alpha1.SharedServicePlan{}
+	if err := json.Unmarshal(bytes, s); err != nil {
+		return nil, err
+	}
+	return s, nil
+}
+
+func (c *userProvidedController) brokerServiceFromSharedService(service *v1alpha1.SharedService) (*brokerapi.Service, error) {
 	// uuid generator
 	// hard coded for keycloak
-	return &brokerapi.Service{
-		Name:        sharedService.Name + "-slice",
-		ID:          createID(sharedService.Name),
-		Description: sharedService.Name + " shared service",
-		Metadata:    map[string]string{"serviceName": sharedService.Name},
-		Plans: []brokerapi.ServicePlan{{
-			Name:        "shared",
-			ID:          createID(sharedService.Name + "-slice-plan"),
-			Description: "this plan gives you access to a shared managed keycloak instance",
-			Free:        true,
-			Schemas: &brokerapi.Schemas{
-				ServiceBinding: &brokerapi.ServiceBindingSchema{
-					Create: &brokerapi.RequestResponseSchema{
-						InputParametersSchema: brokerapi.InputParametersSchema{
-							Parameters: map[string]interface{}{
-								"$schema": "http://json-schema.org/draft-04/schema#",
-								"type":    "object",
-								"properties": map[string]interface{}{
-									"Username": map[string]interface{}{
-										"description": "Username",
-										"type":        "string",
-									},
-									"ClientType": map[string]interface{}{
-										"description": "ClientType",
-										"type":        "string",
-									},
-								},
-							},
-						},
-					},
-				},
-				ServiceInstance: &brokerapi.ServiceInstanceSchema{
-					Create: &brokerapi.InputParametersSchema{
-						Parameters: map[string]interface{}{
-							"$schema": "http://json-schema.org/draft-04/schema#",
-							"type":    "object",
-							"properties": map[string]interface{}{
-								"CUSTOM_REALM_NAME": map[string]interface{}{
-									"description": "the realm you want to create",
-									"type":        "string",
-									"required":    true,
-								},
-							},
-						},
-					},
-				},
-			},
-		},
-		},
-		Bindable:       true,
-		PlanUpdateable: false,
+	sharedServicePlanList, err := c.sharedServicePlanClient.List(metav1.ListOptions{})
+	if err != nil {
+		return nil, err
 	}
+	brokerService := &brokerapi.Service{
+		Name:        service.Name + "-slice",
+		ID:          createID(service.Name),
+		Description: service.Name + " shared service slice.",
+		Metadata:    map[string]string{"serviceName": service.Name},
+		Plans:       []brokerapi.ServicePlan{},
+	}
+
+	glog.Infof("got plans list: %+v", sharedServicePlanList)
+
+	sharedServicePlanList.(*unstructured.UnstructuredList).EachListItem(func(object runtime.Object) error {
+		plan, err := sharedServicePlanFromRunTime(object)
+		glog.Infof("Got service plan: %+v\n", plan)
+		if err != nil {
+			return err
+		}
+
+		glog.Infof("check for matching plan: '%v' ?? '%v'\n", plan.Spec.Service, service.Spec.Service)
+		if plan.Spec.Service == service.Spec.Service {
+			glog.Infof("found matching plan")
+			bindParams := map[string]interface{}{}
+			for param, paramType := range plan.Spec.BindParams {
+				bindParams[param] = map[string]interface{}{"description": param, "type": paramType}
+			}
+			provisionParams := map[string]interface{}{}
+			for param, paramType := range plan.Spec.BindParams {
+				provisionParams[param] = map[string]interface{}{"description": param, "type": paramType}
+			}
+			plan := brokerapi.ServicePlan{
+				Name:        plan.Name,
+				ID:          plan.Spec.ID,
+				Description: plan.Spec.Description,
+				Free:        plan.Spec.Free,
+				Schemas: &brokerapi.Schemas{
+					ServiceBinding: &brokerapi.ServiceBindingSchema{
+						Create: &brokerapi.RequestResponseSchema{
+							InputParametersSchema: brokerapi.InputParametersSchema{
+								Parameters: map[string]interface{}{
+									"$schema":    "http://json-schema.org/draft-04/schema#",
+									"type":       "object",
+									"properties": bindParams,
+								},
+							},
+						},
+					},
+					ServiceInstance: &brokerapi.ServiceInstanceSchema{
+						Create: &brokerapi.InputParametersSchema{
+							Parameters: map[string]interface{}{
+								"$schema":    "http://json-schema.org/draft-04/schema#",
+								"type":       "object",
+								"properties": provisionParams,
+							},
+						},
+					},
+				},
+			}
+			glog.Infof("created broker plan: %+v\n", plan)
+			brokerService.Plans = append(brokerService.Plans, plan)
+		}
+		return nil
+	})
+
+	return brokerService, nil
 }
 
 func createID(seed string) string {
@@ -185,7 +214,10 @@ func (c *userProvidedController) Catalog() (*brokerapi.Catalog, error) {
 
 		if sharedService.Status.Ready == true {
 			glog.Info("shared service is ready")
-			bs := brokerServiceFromSharedService(sharedService)
+			bs, err := c.brokerServiceFromSharedService(sharedService)
+			if err != nil {
+				return err
+			}
 			serviceMap[bs.ID] = bs
 		}
 

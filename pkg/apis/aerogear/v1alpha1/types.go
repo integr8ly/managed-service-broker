@@ -12,6 +12,33 @@ type HasClusterServiceClass interface {
 	SetClusterServiceClassName(string)
 }
 
+type SharedServicePlanList struct {
+	metav1.TypeMeta `json:",inline"`
+	metav1.ListMeta `json:"metadata"`
+	Items           []SharedServicePlan `json:"items"`
+}
+
+type SharedServicePlan struct {
+	metav1.TypeMeta   `json:",inline"`
+	metav1.ObjectMeta `json:"metadata"`
+	Spec              SharedServicePlanSpec   `json:"spec"`
+	Status            SharedServicePlanStatus `json:"status"`
+}
+
+type SharedServicePlanStatus struct {
+	Ready bool `json:"Ready"`
+}
+
+type SharedServicePlanSpec struct {
+	Service         string            `json:"service"`
+	Name            string            `json:"name"`
+	ID              string            `json:"id"`
+	Description     string            `json:"description"`
+	Free            bool              `json:"free"`
+	BindParams      map[string]string `json:"bind_params"`
+	ProvisionParams map[string]string `json:"provision_params"`
+}
+
 type SharedServiceList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata"`

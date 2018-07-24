@@ -45,9 +45,8 @@ func run() error {
 	return runWithContext(ctx)
 }
 
-func getSharedResourceClient(namespace string) (dynamic.ResourceInterface, error) {
+func getSharedResourceClient(namespace, kind string) (dynamic.ResourceInterface, error) {
 	apiVersion := "aerogear.org/v1alpha1"
-	kind := "SharedService"
 	sharedResourceClient, _, err := k8sclient.GetResourceClient(apiVersion, kind, namespace)
 	return sharedResourceClient, err
 }
@@ -75,15 +74,19 @@ func runWithContext(ctx context.Context) error {
 	addr := ":" + strconv.Itoa(options.Port)
 	var err error
 
-	sharedResourceClient, err := getSharedResourceClient(namespace)
+	sharedServiceClient, err := getSharedResourceClient(namespace, "SharedService")
 	if err != nil {
 		return err
 	}
-	sharedServiceSliceClient, err := getSharedServiceSliceResourceClient(namespace)
+	sharedServiceSliceClient, err := getSharedResourceClient(namespace, "SharedServiceSlice")
 	if err != nil {
 		return err
 	}
-	ctrlr := controller.CreateController(namespace, sharedResourceClient, sharedServiceSliceClient)
+	sharedServicePlanClient, err := getSharedResourceClient(namespace, "SharedServicePlan")
+	if err != nil {
+		return err
+	}
+	ctrlr := controller.CreateController(namespace, sharedServiceClient, sharedServiceSliceClient, sharedServicePlanClient)
 	ctrlr.Catalog()
 
 	if options.TLSCert == "" && options.TLSKey == "" {
