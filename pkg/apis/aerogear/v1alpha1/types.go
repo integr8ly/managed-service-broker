@@ -30,13 +30,26 @@ type SharedServicePlanStatus struct {
 }
 
 type SharedServicePlanSpec struct {
-	Service         string            `json:"service"`
-	Name            string            `json:"name"`
-	ID              string            `json:"id"`
-	Description     string            `json:"description"`
-	Free            bool              `json:"free"`
-	BindParams      map[string]string `json:"bind_params"`
-	ProvisionParams map[string]string `json:"provision_params"`
+	Service         string                      `json:"service"`
+	Name            string                      `json:"name"`
+	ID              string                      `json:"id"`
+	Description     string                      `json:"description"`
+	Free            bool                        `json:"free"`
+	BindParams      SharedServicePlanSpecParams `json:"bind_params"`
+	ProvisionParams SharedServicePlanSpecParams `json:"provision_params"`
+}
+
+type SharedServicePlanSpecParams struct {
+	Schema     string                                         `json:"$schema"`
+	Type       string                                         `json:"type"`
+	Properties map[string]SharedServicePlanSpecParamsProperty `json:"properties"`
+}
+
+type SharedServicePlanSpecParamsProperty struct {
+	Type        string `json:"type"`
+	Required    bool   `json:"required"`
+	Description string `json:"description"`
+	Title       string `json:"title"`
 }
 
 type SharedServiceList struct {

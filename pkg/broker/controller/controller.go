@@ -136,15 +136,7 @@ func (c *userProvidedController) brokerServiceFromSharedService(service *v1alpha
 		glog.Infof("check for matching plan: '%v' ?? '%v'\n", plan.Spec.Service, service.Spec.Service)
 		if plan.Spec.Service == service.Spec.Service {
 			glog.Infof("found matching plan")
-			bindParams := map[string]interface{}{}
-			for param, paramType := range plan.Spec.BindParams {
-				bindParams[param] = map[string]interface{}{"description": param, "type": paramType}
-			}
-			provisionParams := map[string]interface{}{}
-			for param, paramType := range plan.Spec.BindParams {
-				provisionParams[param] = map[string]interface{}{"description": param, "type": paramType}
-			}
-			plan := brokerapi.ServicePlan{
+			outPlan := brokerapi.ServicePlan{
 				Name:        plan.Name,
 				ID:          plan.Spec.ID,
 				Description: plan.Spec.Description,
@@ -153,27 +145,18 @@ func (c *userProvidedController) brokerServiceFromSharedService(service *v1alpha
 					ServiceBinding: &brokerapi.ServiceBindingSchema{
 						Create: &brokerapi.RequestResponseSchema{
 							InputParametersSchema: brokerapi.InputParametersSchema{
-								Parameters: map[string]interface{}{
-									"$schema":    "http://json-schema.org/draft-04/schema#",
-									"type":       "object",
-									"properties": bindParams,
-								},
+								Parameters: plan.Spec.BindParams,
 							},
 						},
 					},
 					ServiceInstance: &brokerapi.ServiceInstanceSchema{
 						Create: &brokerapi.InputParametersSchema{
-							Parameters: map[string]interface{}{
-								"$schema":    "http://json-schema.org/draft-04/schema#",
-								"type":       "object",
-								"properties": provisionParams,
-							},
+							Parameters: plan.Spec.ProvisionParams,
 						},
 					},
 				},
 			}
-			glog.Infof("created broker plan: %+v\n", plan)
-			brokerService.Plans = append(brokerService.Plans, plan)
+			brokerService.Plans = append(brokerService.Plans, outPlan)
 		}
 		return nil
 	})
