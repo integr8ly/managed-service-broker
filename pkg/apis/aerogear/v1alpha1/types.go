@@ -30,7 +30,7 @@ type SharedServicePlanStatus struct {
 }
 
 type SharedServicePlanSpec struct {
-	Service         string                      `json:"service"`
+	ServiceType     string                      `json:"service_type"`
 	Name            string                      `json:"name"`
 	ID              string                      `json:"id"`
 	Description     string                      `json:"description"`
@@ -68,7 +68,7 @@ type SharedService struct {
 }
 
 type SharedServiceSpec struct {
-	Service                         string                 `json:"service"`
+	ServiceType                     string                 `json:"service_type"`
 	RequiredInstances               int                    `json:"required_instances"`
 	MinimumInstances                int                    `json:"minimum_instances"`
 	MaximumInstances                int                    `json:"maximum_instances"`
@@ -148,7 +148,7 @@ type SharedServiceSlice struct {
 }
 
 type SharedServiceSliceSpec struct {
-	ServiceType string                 `json:"serviceType"`
+	ServiceType string                 `json:"service_type"`
 	Params      map[string]interface{} `json:"params"`
 	// Fill me
 }

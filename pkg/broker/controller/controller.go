@@ -133,8 +133,8 @@ func (c *userProvidedController) brokerServiceFromSharedService(service *v1alpha
 			return err
 		}
 
-		glog.Infof("check for matching plan: '%v' ?? '%v'\n", plan.Spec.Service, service.Spec.Service)
-		if plan.Spec.Service == service.Spec.Service {
+		glog.Infof("check for matching plan: '%v' ?? '%v'\n", plan.Spec.ServiceType, service.Spec.ServiceType)
+		if plan.Spec.ServiceType == service.Spec.ServiceType {
 			glog.Infof("found matching plan")
 			outPlan := brokerapi.ServicePlan{
 				Name:        plan.Name,
