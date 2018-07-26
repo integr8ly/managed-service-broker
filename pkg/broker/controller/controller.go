@@ -228,7 +228,7 @@ func (c *userProvidedController) CreateServiceInstance(
 	serviceMeta := s.Metadata.(map[string]string)
 	ss := &v1alpha1.SharedServiceSlice{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: id,
+			Name:      id,
 			Namespace: c.brokerNS,
 			Labels: map[string]string{
 				"serviceInstanceID": id,
@@ -240,8 +240,8 @@ func (c *userProvidedController) CreateServiceInstance(
 			Kind:       "SharedServiceSlice",
 		},
 		Spec: v1alpha1.SharedServiceSliceSpec{
-			ServiceType: serviceMeta["serviceType"], 
-			Params:      req.Parameters,
+			ServiceType:    serviceMeta["serviceType"],
+			Params:         req.Parameters,
 			SliceNamespace: req.ContextProfile.Namespace,
 		},
 	}
@@ -264,7 +264,6 @@ func (c *userProvidedController) GetServiceInstanceLastOperation(
 	planID,
 	operation string,
 ) (*brokerapi.LastOperationResponse, error) {
-	glog.Info("GetServiceInstanceLastOperation()", "operation "+operation, serviceID)
 	if operation == "provision" {
 		unstructSSL, err := c.sharedServiceSliceClient.Get(instanceID, metav1.GetOptions{})
 		if err != nil {
@@ -276,14 +275,13 @@ func (c *userProvidedController) GetServiceInstanceLastOperation(
 			glog.Error("failed runtime object ", err)
 			return nil, err
 		}
-		glog.Info("status of slice ", serviceSlice.Status.Phase, serviceSlice.Status.Message)
-		if serviceSlice.Status.Phase == "provisioning" {
+		if serviceSlice.Status.Phase == v1alpha1.ProvisioningPhase {
 			return &brokerapi.LastOperationResponse{Description: serviceSlice.Status.Message, State: brokerapi.StateInProgress}, nil
 		}
-		if serviceSlice.Status.Phase == "failed" {
+		if serviceSlice.Status.Phase == v1alpha1.FailedPhase {
 			return &brokerapi.LastOperationResponse{Description: serviceSlice.Status.Message, State: brokerapi.StateFailed}, nil
 		}
-		if serviceSlice.Status.Phase == "complete" {
+		if serviceSlice.Status.Phase == v1alpha1.CompletePhase {
 			return &brokerapi.LastOperationResponse{Description: serviceSlice.Status.Message, State: brokerapi.StateSucceeded}, nil
 		}
 	}
