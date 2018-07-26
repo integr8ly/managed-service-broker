@@ -135,9 +135,6 @@ func (s *server) createServiceInstance(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// TODO: Check if parameters are required, if not, this thing below is ok to leave in,
-	// if they are ,they should be checked. Because if no parameters are passed in, this will
-	// fail because req.Parameters is nil.
 	if req.Parameters == nil {
 		req.Parameters = make(map[string]interface{})
 	}

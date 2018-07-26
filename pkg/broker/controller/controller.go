@@ -120,7 +120,7 @@ func (c *userProvidedController) brokerServiceFromSharedService(service *v1alpha
 		Name:        service.Name + "-slice",
 		ID:          createID(service.Name),
 		Description: service.Name + " shared service slice.",
-		Metadata:    map[string]string{"serviceName": service.Name},
+		Metadata:    map[string]string{"serviceName": service.Name, "serviceType": service.Spec.ServiceType},
 		Plans:       []brokerapi.ServicePlan{},
 	}
 
@@ -218,18 +218,17 @@ func (c *userProvidedController) CreateServiceInstance(
 	id string,
 	req *brokerapi.CreateServiceInstanceRequest,
 ) (*brokerapi.CreateServiceInstanceResponse, error) {
-	glog.Info("CreateServiceInstance()", id, req.Parameters, req.ServiceID, req.AcceptsIncomplete, req.ContextProfile, req.AcceptsIncomplete)
+	glog.Info("Creating Service Instance", id, req.Parameters, req.ServiceID, req.AcceptsIncomplete, req.ContextProfile)
 	s := c.findServiceById(req.ServiceID)
 	if s == nil {
 		glog.Error("failed to find service instance")
 		return nil, errNoSuchInstance{}
 	}
-	glog.Info("got service ", s)
+
 	serviceMeta := s.Metadata.(map[string]string)
 	ss := &v1alpha1.SharedServiceSlice{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: id,
-			//move to config
 			Namespace: c.brokerNS,
 			Labels: map[string]string{
 				"serviceInstanceID": id,
@@ -237,12 +236,13 @@ func (c *userProvidedController) CreateServiceInstance(
 			},
 		},
 		TypeMeta: metav1.TypeMeta{
-			APIVersion: "v1alpha1",
+			APIVersion: "aerogear.org/v1alpha1",
 			Kind:       "SharedServiceSlice",
 		},
 		Spec: v1alpha1.SharedServiceSliceSpec{
-			ServiceType: serviceMeta["serviceName"],
+			ServiceType: serviceMeta["serviceType"], 
 			Params:      req.Parameters,
+			SliceNamespace: req.ContextProfile.Namespace,
 		},
 	}
 

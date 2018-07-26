@@ -148,8 +148,9 @@ type SharedServiceSlice struct {
 }
 
 type SharedServiceSliceSpec struct {
-	ServiceType string                 `json:"service_type"`
-	Params      map[string]interface{} `json:"params"`
+	ServiceType 	 string                 `json:"service_type"`
+	Params      	 map[string]interface{} `json:"params"`
+	SliceNamespace string									`json:"slice_namespace"`
 	// Fill me
 }
 type SharedServiceSliceStatus struct {
