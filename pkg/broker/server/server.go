@@ -46,8 +46,8 @@ func createHandler(c controller.Controller) http.Handler {
 
 	router.HandleFunc("/v2/catalog", s.catalog).Methods("GET")
 	router.HandleFunc("/v2/service_instances/{instance_id}/last_operation", s.getServiceInstanceLastOperation).Methods("GET")
-	router.HandleFunc("/v2/service_instances/{instance_id}", s.createServiceInstance).Methods("PUT")
-	router.HandleFunc("/v2/service_instances/{instance_id}", s.removeServiceInstance).Methods("DELETE")
+	router.HandleFunc("/v2/service_instances/{instance_id}", s.createServiceSlice).Methods("PUT")
+	router.HandleFunc("/v2/service_instances/{instance_id}", s.removeServiceSlice).Methods("DELETE")
 	router.HandleFunc("/v2/service_instances/{instance_id}/service_bindings/{binding_id}", s.bind).Methods("PUT")
 	router.HandleFunc("/v2/service_instances/{instance_id}/service_bindings/{binding_id}", s.unBind).Methods("DELETE")
 
@@ -60,7 +60,7 @@ func Run(ctx context.Context, addr string, c controller.Controller) error {
 	listenAndServe := func(srv *http.Server) error {
 		return srv.ListenAndServe()
 	}
-	glog.Info("Run > run")
+	glog.Info("Running HTTP server")
 	return run(ctx, addr, listenAndServe, c)
 }
 
@@ -78,12 +78,12 @@ func RunTLS(ctx context.Context, addr string, cert string, key string, c control
 		srv.TLSConfig.Certificates = []tls.Certificate{tlsCert}
 		return srv.ListenAndServeTLS("", "")
 	}
-	glog.Info("RunTLS > run")
+	glog.Info("Running HTTPS server")
 	return run(ctx, addr, listenAndServe, c)
 }
 
 func run(ctx context.Context, addr string, listenAndServe func(srv *http.Server) error, c controller.Controller) error {
-	glog.Infof("Starting server on %s\n", addr)
+	glog.Infof("Starting server on %s", addr)
 	srv := &http.Server{
 		Addr:    addr,
 		Handler: createHandler(c),
@@ -100,7 +100,7 @@ func run(ctx context.Context, addr string, listenAndServe func(srv *http.Server)
 }
 
 func (s *server) catalog(w http.ResponseWriter, r *http.Request) {
-	glog.Infof("Get Service Broker Catalog...")
+	glog.Infof("Get service broker catalog...")
 
 	if result, err := s.controller.Catalog(); err == nil {
 		util.WriteResponse(w, http.StatusOK, result)
@@ -115,7 +115,7 @@ func (s *server) getServiceInstanceLastOperation(w http.ResponseWriter, r *http.
 	serviceID := q.Get("service_id")
 	planID := q.Get("plan_id")
 	operation := q.Get("operation")
-	glog.Infof("GetServiceInstance ... %s\n", instanceID)
+	glog.Infof("Get service slice... %s", instanceID)
 
 	if result, err := s.controller.GetServiceInstanceLastOperation(instanceID, serviceID, planID, operation); err == nil {
 		util.WriteResponse(w, http.StatusOK, result)
@@ -124,10 +124,8 @@ func (s *server) getServiceInstanceLastOperation(w http.ResponseWriter, r *http.
 	}
 }
 
-func (s *server) createServiceInstance(w http.ResponseWriter, r *http.Request) {
+func (s *server) createServiceSlice(w http.ResponseWriter, r *http.Request) {
 	id := mux.Vars(r)["instance_id"]
-	glog.Infof("CreateServiceInstance %s...\n", id)
-
 	var req brokerapi.CreateServiceInstanceRequest
 	if err := util.BodyToObject(r, &req); err != nil {
 		glog.Errorf("error unmarshalling: %v", err)
@@ -139,7 +137,7 @@ func (s *server) createServiceInstance(w http.ResponseWriter, r *http.Request) {
 		req.Parameters = make(map[string]interface{})
 	}
 
-	if result, err := s.controller.CreateServiceInstance(id, &req); err == nil {
+	if result, err := s.controller.CreateServiceSlice(id, &req); err == nil {
 		status := http.StatusCreated
 		if result.Code != 0 {
 			status = result.Code
@@ -150,15 +148,14 @@ func (s *server) createServiceInstance(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (s *server) removeServiceInstance(w http.ResponseWriter, r *http.Request) {
+func (s *server) removeServiceSlice(w http.ResponseWriter, r *http.Request) {
 	instanceID := mux.Vars(r)["instance_id"]
 	q := r.URL.Query()
 	serviceID := q.Get("service_id")
 	planID := q.Get("plan_id")
 	acceptsIncomplete := q.Get("accepts_incomplete") == "true"
-	glog.Infof("RemoveServiceInstance %s...\n", instanceID)
 
-	if result, err := s.controller.RemoveServiceInstance(instanceID, serviceID, planID, acceptsIncomplete); err == nil {
+	if result, err := s.controller.RemoveServiceSlice(instanceID, serviceID, planID, acceptsIncomplete); err == nil {
 		util.WriteResponse(w, http.StatusOK, result)
 	} else {
 		util.WriteErrorResponse(w, http.StatusBadRequest, err)

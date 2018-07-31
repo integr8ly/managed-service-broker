@@ -31,7 +31,7 @@ import (
 	brokerapi "github.com/aerogear/managed-services-broker/pkg/broker"
 	"github.com/operator-framework/operator-sdk/pkg/util/k8sutil"
 	glog "github.com/sirupsen/logrus"
-	errors2 "k8s.io/apimachinery/pkg/api/errors"
+	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -44,8 +44,8 @@ type Controller interface {
 	Catalog() (*broker.Catalog, error)
 
 	GetServiceInstanceLastOperation(instanceID, serviceID, planID, operation string) (*broker.LastOperationResponse, error)
-	CreateServiceInstance(instanceID string, req *broker.CreateServiceInstanceRequest) (*broker.CreateServiceInstanceResponse, error)
-	RemoveServiceInstance(instanceID, serviceID, planID string, acceptsIncomplete bool) (*broker.DeleteServiceInstanceResponse, error)
+	CreateServiceSlice(instanceID string, req *broker.CreateServiceInstanceRequest) (*broker.CreateServiceInstanceResponse, error)
+	RemoveServiceSlice(instanceID, serviceID, planID string, acceptsIncomplete bool) (*broker.DeleteServiceInstanceResponse, error)
 
 	Bind(instanceID, bindingID string, req *broker.BindingRequest) (*broker.CreateServiceBindingResponse, error)
 	UnBind(instanceID, bindingID, serviceID, planID string) error
@@ -124,7 +124,7 @@ func (c *userProvidedController) brokerServiceFromSharedService(service *v1alpha
 		Plans:       []brokerapi.ServicePlan{},
 	}
 
-	glog.Infof("got plans list: %+v", sharedServicePlanList)
+	glog.Infof("Got plans list: %+v", sharedServicePlanList)
 
 	sharedServicePlanList.(*unstructured.UnstructuredList).EachListItem(func(object runtime.Object) error {
 		plan, err := sharedServicePlanFromRunTime(object)
@@ -133,9 +133,9 @@ func (c *userProvidedController) brokerServiceFromSharedService(service *v1alpha
 			return err
 		}
 
-		glog.Infof("check for matching plan: '%v' ?? '%v'\n", plan.Spec.ServiceType, service.Spec.ServiceType)
+		glog.Infof("Check for matching plan: '%v', '%v'", plan.Spec.ServiceType, service.Spec.ServiceType)
 		if plan.Spec.ServiceType == service.Spec.ServiceType {
-			glog.Infof("found matching plan")
+			glog.Infof("Found matching plan")
 			outPlan := brokerapi.ServicePlan{
 				Name:        plan.Name,
 				ID:          plan.Spec.ID,
@@ -214,14 +214,14 @@ func (c *userProvidedController) Catalog() (*brokerapi.Catalog, error) {
 	}, nil
 }
 
-func (c *userProvidedController) CreateServiceInstance(
+func (c *userProvidedController) CreateServiceSlice(
 	id string,
 	req *brokerapi.CreateServiceInstanceRequest,
 ) (*brokerapi.CreateServiceInstanceResponse, error) {
-	glog.Info("Creating Service Instance", id, req.Parameters, req.ServiceID, req.AcceptsIncomplete, req.ContextProfile)
+	glog.Infof("Creating shared service slice. Id: %s, Params: %s, Service Id: %s, Accepts Incomplete: %t, Context Profile: %s.", id, req.Parameters, req.ServiceID, req.AcceptsIncomplete, req.ContextProfile)
 	s := c.findServiceById(req.ServiceID)
 	if s == nil {
-		glog.Error("failed to find service instance")
+		glog.Error("failed to find shared service slice")
 		return nil, errNoSuchInstance{}
 	}
 
@@ -248,13 +248,13 @@ func (c *userProvidedController) CreateServiceInstance(
 
 	if _, err := c.sharedServiceSliceClient.Create(k8sutil.UnstructuredFromRuntimeObject(ss)); err != nil {
 		glog.Error("error creating shared service slice ", err)
-		if errors2.IsAlreadyExists(err) {
+		if kerrors.IsAlreadyExists(err) {
 			return &brokerapi.CreateServiceInstanceResponse{Code: http.StatusOK}, nil
 		}
 		return nil, err
 	}
 
-	glog.Infof("Created User Provided Service Instance:\n%v\n", c.instanceMap[id])
+	glog.Infof("Created user provided service instance: %v ", c.instanceMap[id])
 	return &brokerapi.CreateServiceInstanceResponse{Code: http.StatusAccepted, Operation: "provision"}, nil
 }
 
@@ -288,16 +288,17 @@ func (c *userProvidedController) GetServiceInstanceLastOperation(
 	return nil, errors.New("Unimplemented")
 }
 
-func (c *userProvidedController) RemoveServiceInstance(
+func (c *userProvidedController) RemoveServiceSlice(
 	instanceID,
 	serviceID,
 	planID string,
 	acceptsIncomplete bool,
 ) (*brokerapi.DeleteServiceInstanceResponse, error) {
-	glog.Info("RemoveServiceInstance()", instanceID)
+	glog.Info("Removing shared service slice ", instanceID)
+
 	if err := c.sharedServiceSliceClient.Delete(instanceID, metav1.NewDeleteOptions(10)); err != nil {
 		glog.Error("failed to delete the slice ", err)
-		if errors2.IsNotFound(err) {
+		if kerrors.IsNotFound(err) {
 			return &brokerapi.DeleteServiceInstanceResponse{}, nil
 		}
 		return nil, err
