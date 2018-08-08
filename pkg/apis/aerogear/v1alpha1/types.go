@@ -30,13 +30,13 @@ type SharedServicePlanStatus struct {
 }
 
 type SharedServicePlanSpec struct {
-	ServiceType     string                      `json:"service_type"`
+	ServiceType     string                      `json:"serviceType"`
 	Name            string                      `json:"name"`
 	ID              string                      `json:"id"`
 	Description     string                      `json:"description"`
 	Free            bool                        `json:"free"`
-	BindParams      SharedServicePlanSpecParams `json:"bind_params"`
-	ProvisionParams SharedServicePlanSpecParams `json:"provision_params"`
+	BindParams      SharedServicePlanSpecParams `json:"bindParams"`
+	ProvisionParams SharedServicePlanSpecParams `json:"provisionParams"`
 }
 
 type SharedServicePlanSpecParams struct {
@@ -68,20 +68,20 @@ type SharedService struct {
 }
 
 type SharedServiceSpec struct {
-	ServiceType                     string                 `json:"service_type"`
-	RequiredInstances               int                    `json:"required_instances"`
-	MinimumInstances                int                    `json:"minimum_instances"`
-	MaximumInstances                int                    `json:"maximum_instances"`
-	CurrentInstances                []string               `json:"current_instances"`
-	SlicesPerInstance               int                    `json:"slices_per_instance"`
+	ServiceType                     string                 `json:"serviceType"`
+	RequiredInstances               int                    `json:"requiredInstances"`
+	MinimumInstances                int                    `json:"minInstances"`
+	MaximumInstances                int                    `json:"maxInstances"`
+	CurrentInstances                []string               `json:"currentInstances"`
+	SlicesPerInstance               int                    `json:"slicesPerInstance"`
 	Params                          map[string]interface{} `json:"params"`
 	Image                           string                 `json:"image"`
-	ClusterServiceClassExternalName string                 `json:"cluster_service_class_external_name"`
-	ClusterServiceClassName         string                 `json:"cluster_service_class_name"`
+	ClusterServiceClassExternalName string                 `json:"clusterServiceClassExternalName"`
+	ClusterServiceClassName         string                 `json:"clusterServiceClassName"`
 }
 type SharedServiceStatus struct {
-	// Fill me
-	Ready bool `json:"ready"`
+	Phase Phase `json:"phase,omitempty"`
+	Ready bool  `json:"ready"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
@@ -116,18 +116,18 @@ func (s *SharedServiceInstance) SetClusterServiceClassName(csName string) {
 type SharedServiceInstanceSpec struct {
 	//Image the docker image to run to provision the service
 	Image                           string                 `json:"image"`
-	ClusterServiceClassName         string                 `json:"cluster_service_class_name"`
-	ClusterServiceClassExternalName string                 `json:"cluster_service_class_external_name"`
+	ClusterServiceClassName         string                 `json:"clusterServiceClassName"`
+	ClusterServiceClassExternalName string                 `json:"clusterServiceClassExternalName"`
 	Params                          map[string]interface{} `json:"params"`
-	MaxSlices                       int                    `json:"max_slices"`
+	SlicesPerInstance               int                    `json:"slicesPerInstance"`
 }
 type SharedServiceInstanceStatus struct {
 	// Fill me
 	Ready           bool     `json:"ready"`
 	Status          string   `json:"status"` // provisioning, failed, provisioned
 	Phase           Phase    `json:"phase"`
-	ServiceInstance string   `json:"service_instance"`
-	CurrentSlices   []string `json:"current_slices"`
+	ServiceInstance string   `json:"serviceInstance"`
+	CurrentSlices   []string `json:"currentSlices"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
@@ -148,19 +148,20 @@ type SharedServiceSlice struct {
 }
 
 type SharedServiceSliceSpec struct {
-	ServiceType 	 string                 `json:"service_type"`
-	Params      	 map[string]interface{} `json:"params"`
-	SliceNamespace string									`json:"slice_namespace"`
+	ServiceType    string                 `json:"serviceType"`
+	Params         map[string]interface{} `json:"params"`
+	SliceNamespace string                 `json:"sliceNamespace"`
 	// Fill me
 }
 type SharedServiceSliceStatus struct {
 	// Fill me
 	Phase  Phase  `json:"phase"`
 	Action string `json:"action"`
+	Ready  bool   `json:"ready"`
 	// the ServiceInstanceID that represents the slice
-	SliceServiceInstance string `json:"slice_service_instance"`
+	SliceServiceInstance string `json:"sliceServiceInstance"`
 	// the ServiceInstanceID that represents the parent shared service
-	SharedServiceInstance string `json:"shared_service_instance"`
+	SharedServiceInstance string `json:"sharedServiceInstance"`
 	// Human readable message about what is happening
 	Message string `json:"message"`
 }
