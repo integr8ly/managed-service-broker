@@ -13,9 +13,12 @@ import (
 	"github.com/aerogear/managed-services-broker/pkg/broker"
 	"github.com/aerogear/managed-services-broker/pkg/broker/controller"
 	"github.com/aerogear/managed-services-broker/pkg/broker/server"
+	"github.com/aerogear/managed-services-broker/pkg/clients/openshift"
+	"github.com/aerogear/managed-services-broker/pkg/deploys/fuse"
 	"github.com/operator-framework/operator-sdk/pkg/k8sclient"
+	"github.com/pkg/errors"
 	glog "github.com/sirupsen/logrus"
-	"k8s.io/client-go/dynamic"
+	"k8s.io/client-go/tools/clientcmd"
 )
 
 var options struct {
@@ -45,19 +48,6 @@ func run() error {
 	return runWithContext(ctx)
 }
 
-func getSharedResourceClient(namespace, kind string) (dynamic.ResourceInterface, error) {
-	apiVersion := "aerogear.org/v1alpha1"
-	sharedResourceClient, _, err := k8sclient.GetResourceClient(apiVersion, kind, namespace)
-	return sharedResourceClient, err
-}
-
-func getSharedServiceSliceResourceClient(namespace string) (dynamic.ResourceInterface, error) {
-	apiVersion := "aerogear.org/v1alpha1"
-	kind := "SharedServiceSlice"
-	sharedResourceClient, _, err := k8sclient.GetResourceClient(apiVersion, kind, namespace)
-	return sharedResourceClient, err
-}
-
 func runWithContext(ctx context.Context) error {
 	if flag.Arg(0) == "version" {
 		fmt.Printf("%s/%s\n", path.Base(os.Args[0]), broker.VERSION)
@@ -74,19 +64,21 @@ func runWithContext(ctx context.Context) error {
 	addr := ":" + strconv.Itoa(options.Port)
 	var err error
 
-	sharedServiceClient, err := getSharedResourceClient(namespace, "SharedService")
+	// Instantiate loader for kubeconfig file.
+	kubeconfig := clientcmd.NewNonInteractiveDeferredLoadingClientConfig(
+		clientcmd.NewDefaultClientConfigLoadingRules(),
+		&clientcmd.ConfigOverrides{},
+	)
+	cfg, err := kubeconfig.ClientConfig()
 	if err != nil {
-		return err
+		return errors.Wrap(err, "error creating kube client config")
 	}
-	sharedServiceSliceClient, err := getSharedResourceClient(namespace, "SharedServiceSlice")
-	if err != nil {
-		return err
-	}
-	sharedServicePlanClient, err := getSharedResourceClient(namespace, "SharedServicePlan")
-	if err != nil {
-		return err
-	}
-	ctrlr := controller.CreateController(namespace, sharedServiceClient, sharedServiceSliceClient, sharedServicePlanClient)
+	k8sClient := k8sclient.GetKubeClient()
+	osClient := openshift.NewClientFactory(cfg)
+
+	ctrlr := controller.CreateController(namespace, k8sClient, osClient)
+
+	ctrlr.RegisterDeployer(fuse.NewDeployer("fuse-deployer"))
 	ctrlr.Catalog()
 
 	if options.TLSCert == "" && options.TLSKey == "" {

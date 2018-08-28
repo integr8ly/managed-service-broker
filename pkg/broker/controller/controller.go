@@ -17,26 +17,27 @@ limitations under the License.
 package controller
 
 import (
-	"encoding/json"
-	"errors"
 	"fmt"
 	"sync"
 
-	"crypto/md5"
-	"encoding/hex"
 	"net/http"
 
-	"github.com/aerogear/managed-services-broker/pkg/apis/aerogear/v1alpha1"
 	"github.com/aerogear/managed-services-broker/pkg/broker"
 	brokerapi "github.com/aerogear/managed-services-broker/pkg/broker"
-	"github.com/operator-framework/operator-sdk/pkg/util/k8sutil"
+	"github.com/aerogear/managed-services-broker/pkg/clients/openshift"
 	glog "github.com/sirupsen/logrus"
-	kerrors "k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/client-go/dynamic"
+
+	"k8s.io/client-go/kubernetes"
 )
+
+//Deployer deploys a service from this broker
+type Deployer interface {
+	GetCatalogEntries() []*brokerapi.Service
+	Deploy(id string, brokerNs string, contextProfile brokerapi.ContextProfile, k8sclient kubernetes.Interface, osclient *openshift.ClientFactory) (*brokerapi.CreateServiceInstanceResponse, error)
+	LastOperation(instanceID string, k8sclient kubernetes.Interface, osclient *openshift.ClientFactory) (*brokerapi.LastOperationResponse, error)
+	GetID() string
+	DoesDeploy(serviceID string) bool
+}
 
 // Controller defines the APIs that all controllers are expected to support. Implementations
 // should be concurrency-safe
@@ -44,11 +45,13 @@ type Controller interface {
 	Catalog() (*broker.Catalog, error)
 
 	GetServiceInstanceLastOperation(instanceID, serviceID, planID, operation string) (*broker.LastOperationResponse, error)
-	CreateServiceSlice(instanceID string, req *broker.CreateServiceInstanceRequest) (*broker.CreateServiceInstanceResponse, error)
-	RemoveServiceSlice(instanceID, serviceID, planID string, acceptsIncomplete bool) (*broker.DeleteServiceInstanceResponse, error)
+	CreateServiceInstance(instanceID string, req *broker.CreateServiceInstanceRequest) (*broker.CreateServiceInstanceResponse, error)
+	RemoveServiceInstance(instanceID, serviceID, planID string, acceptsIncomplete bool) (*broker.DeleteServiceInstanceResponse, error)
 
 	Bind(instanceID, bindingID string, req *broker.BindingRequest) (*broker.CreateServiceBindingResponse, error)
 	UnBind(instanceID, bindingID, serviceID, planID string) error
+
+	RegisterDeployer(deployer Deployer)
 }
 
 type errNoSuchInstance struct {
@@ -65,197 +68,56 @@ type userProvidedServiceInstance struct {
 }
 
 type userProvidedController struct {
-	rwMutex                  sync.RWMutex
-	instanceMap              map[string]*userProvidedServiceInstance
-	sharedServiceClient      dynamic.ResourceInterface
-	sharedServiceSliceClient dynamic.ResourceInterface
-	sharedServicePlanClient  dynamic.ResourceInterface
-	brokerNS                 string
+	rwMutex             sync.RWMutex
+	instanceMap         map[string]*userProvidedServiceInstance
+	k8sclient           kubernetes.Interface
+	osClientFactory     *openshift.ClientFactory
+	brokerNS            string
+	registeredDeployers map[string]Deployer
 }
 
 // CreateController creates an instance of a User Provided service broker controller.
-func CreateController(brokerNS string, sharedServiceClient, sharedServiceSliceClient, sharedServicePlanClient dynamic.ResourceInterface) Controller {
+func CreateController(brokerNS string, k8sclient kubernetes.Interface, osClientFactory *openshift.ClientFactory) Controller {
 	var instanceMap = make(map[string]*userProvidedServiceInstance)
 	return &userProvidedController{
-		instanceMap:              instanceMap,
-		sharedServiceClient:      sharedServiceClient,
-		brokerNS:                 brokerNS,
-		sharedServiceSliceClient: sharedServiceSliceClient,
-		sharedServicePlanClient:  sharedServicePlanClient,
+		instanceMap:         instanceMap,
+		brokerNS:            brokerNS,
+		k8sclient:           k8sclient,
+		osClientFactory:     osClientFactory,
+		registeredDeployers: map[string]Deployer{},
 	}
-}
-
-func sharedServiceFromRunTime(object runtime.Object) (*v1alpha1.SharedService, error) {
-	bytes, err := object.(*unstructured.Unstructured).MarshalJSON()
-	if err != nil {
-		return nil, err
-	}
-	s := &v1alpha1.SharedService{}
-	if err := json.Unmarshal(bytes, s); err != nil {
-		return nil, err
-	}
-	return s, nil
-}
-
-func sharedServicePlanFromRunTime(object runtime.Object) (*v1alpha1.SharedServicePlan, error) {
-	bytes, err := object.(*unstructured.Unstructured).MarshalJSON()
-	if err != nil {
-		return nil, err
-	}
-	s := &v1alpha1.SharedServicePlan{}
-	if err := json.Unmarshal(bytes, s); err != nil {
-		return nil, err
-	}
-	return s, nil
-}
-
-func (c *userProvidedController) brokerServiceFromSharedService(service *v1alpha1.SharedService) (*brokerapi.Service, error) {
-	// uuid generator
-	// hard coded for keycloak
-	sharedServicePlanList, err := c.sharedServicePlanClient.List(metav1.ListOptions{})
-	if err != nil {
-		return nil, err
-	}
-	brokerService := &brokerapi.Service{
-		Name:        service.Name + "-slice",
-		ID:          createID(service.Name),
-		Description: service.Name + " shared service slice.",
-		Metadata:    map[string]string{"serviceName": service.Name, "serviceType": service.Spec.ServiceType},
-		Plans:       []brokerapi.ServicePlan{},
-	}
-
-	glog.Infof("Got plans list: %+v", sharedServicePlanList)
-
-	sharedServicePlanList.(*unstructured.UnstructuredList).EachListItem(func(object runtime.Object) error {
-		plan, err := sharedServicePlanFromRunTime(object)
-		glog.Infof("Got service plan: %+v\n", plan)
-		if err != nil {
-			return err
-		}
-
-		glog.Infof("Check for matching plan: '%v', '%v'", plan.Spec.ServiceType, service.Spec.ServiceType)
-		if plan.Spec.ServiceType == service.Spec.ServiceType {
-			glog.Infof("Found matching plan")
-			outPlan := brokerapi.ServicePlan{
-				Name:        plan.Name,
-				ID:          plan.Spec.ID,
-				Description: plan.Spec.Description,
-				Free:        plan.Spec.Free,
-				Schemas: &brokerapi.Schemas{
-					ServiceBinding: &brokerapi.ServiceBindingSchema{
-						Create: &brokerapi.RequestResponseSchema{
-							InputParametersSchema: brokerapi.InputParametersSchema{
-								Parameters: plan.Spec.BindParams,
-							},
-						},
-					},
-					ServiceInstance: &brokerapi.ServiceInstanceSchema{
-						Create: &brokerapi.InputParametersSchema{
-							Parameters: plan.Spec.ProvisionParams,
-						},
-					},
-				},
-			}
-			brokerService.Plans = append(brokerService.Plans, outPlan)
-		}
-		return nil
-	})
-
-	return brokerService, nil
-}
-
-func createID(seed string) string {
-	hasher := md5.New()
-	hasher.Write([]byte(seed))
-	return hex.EncodeToString(hasher.Sum(nil))
 }
 
 var services []*brokerapi.Service
 
-var serviceMap map[string]*brokerapi.Service = map[string]*brokerapi.Service{}
-
-// todo lock
-func (c *userProvidedController) findServiceById(id string) *brokerapi.Service {
-	c.rwMutex.Lock()
-	defer c.rwMutex.Unlock()
-	return serviceMap[id]
+func (c *userProvidedController) RegisterDeployer(deployer Deployer) {
+	c.registeredDeployers[deployer.GetID()] = deployer
 }
 
 func (c *userProvidedController) Catalog() (*brokerapi.Catalog, error) {
 	glog.Info("Catalog()")
 	services = []*brokerapi.Service{}
-	sharedServiceResourceList, err := c.sharedServiceClient.List(metav1.ListOptions{})
-	glog.Info(sharedServiceResourceList)
-	if err != nil {
-		return nil, err
+	for _, deployer := range c.registeredDeployers {
+		services = append(services, deployer.GetCatalogEntries()...)
 	}
-	sharedServiceResourceList.(*unstructured.UnstructuredList).EachListItem(func(object runtime.Object) error {
-		sharedService, err := sharedServiceFromRunTime(object)
-		if err != nil {
-			return err
-		}
 
-		if sharedService.Status.Ready == true {
-			glog.Info("shared service is ready")
-			bs, err := c.brokerServiceFromSharedService(sharedService)
-			if err != nil {
-				return err
-			}
-			serviceMap[bs.ID] = bs
-		}
-
-		return nil
-	})
-	for _, v := range serviceMap {
-		services = append(services, v)
-	}
 	return &brokerapi.Catalog{
 		Services: services,
 	}, nil
 }
 
-func (c *userProvidedController) CreateServiceSlice(
-	id string,
+func (c *userProvidedController) CreateServiceInstance(
+	instanceID string,
 	req *brokerapi.CreateServiceInstanceRequest,
 ) (*brokerapi.CreateServiceInstanceResponse, error) {
-	glog.Infof("Creating shared service slice. Id: %s, Params: %s, Service Id: %s, Accepts Incomplete: %t, Context Profile: %s.", id, req.Parameters, req.ServiceID, req.AcceptsIncomplete, req.ContextProfile)
-	s := c.findServiceById(req.ServiceID)
-	if s == nil {
-		glog.Error("failed to find shared service slice")
-		return nil, errNoSuchInstance{}
-	}
-
-	serviceMeta := s.Metadata.(map[string]string)
-	ss := &v1alpha1.SharedServiceSlice{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      id,
-			Namespace: c.brokerNS,
-			Labels: map[string]string{
-				"serviceInstanceID": id,
-				"serviceID":         req.ServiceID,
-			},
-		},
-		TypeMeta: metav1.TypeMeta{
-			APIVersion: "aerogear.org/v1alpha1",
-			Kind:       "SharedServiceSlice",
-		},
-		Spec: v1alpha1.SharedServiceSliceSpec{
-			ServiceType:    serviceMeta["serviceType"],
-			Params:         req.Parameters,
-			SliceNamespace: req.ContextProfile.Namespace,
-		},
-	}
-
-	if _, err := c.sharedServiceSliceClient.Create(k8sutil.UnstructuredFromRuntimeObject(ss)); err != nil {
-		glog.Error("error creating shared service slice ", err)
-		if kerrors.IsAlreadyExists(err) {
-			return &brokerapi.CreateServiceInstanceResponse{Code: http.StatusOK}, nil
+	glog.Infof("Create service instance: %s", req.ServiceID)
+	for _, deployer := range c.registeredDeployers {
+		if deployer.DoesDeploy(req.ServiceID) {
+			return deployer.Deploy(instanceID, c.brokerNS, req.ContextProfile, c.k8sclient, c.osClientFactory)
 		}
-		return nil, err
 	}
 
-	glog.Infof("Created user provided service instance: %v ", c.instanceMap[id])
-	return &brokerapi.CreateServiceInstanceResponse{Code: http.StatusAccepted, Operation: "provision"}, nil
+	return &brokerapi.CreateServiceInstanceResponse{Code: http.StatusInternalServerError}, nil
 }
 
 func (c *userProvidedController) GetServiceInstanceLastOperation(
@@ -264,45 +126,23 @@ func (c *userProvidedController) GetServiceInstanceLastOperation(
 	planID,
 	operation string,
 ) (*brokerapi.LastOperationResponse, error) {
-	if operation == "provision" {
-		unstructSSL, err := c.sharedServiceSliceClient.Get(instanceID, metav1.GetOptions{})
-		if err != nil {
-			glog.Error("failed to get shared service slice ", instanceID, err)
-			return nil, err
-		}
-		serviceSlice := &v1alpha1.SharedServiceSlice{}
-		if err := k8sutil.UnstructuredIntoRuntimeObject(unstructSSL, serviceSlice); err != nil {
-			glog.Error("failed runtime object ", err)
-			return nil, err
-		}
-		if serviceSlice.Status.Phase == v1alpha1.ProvisioningPhase {
-			return &brokerapi.LastOperationResponse{Description: serviceSlice.Status.Message, State: brokerapi.StateInProgress}, nil
-		}
-		if serviceSlice.Status.Phase == v1alpha1.FailedPhase {
-			return &brokerapi.LastOperationResponse{Description: serviceSlice.Status.Message, State: brokerapi.StateFailed}, nil
-		}
-		if serviceSlice.Status.Phase == v1alpha1.CompletePhase {
-			return &brokerapi.LastOperationResponse{Description: serviceSlice.Status.Message, State: brokerapi.StateSucceeded}, nil
+	glog.Info("GetServiceInstanceLastOperation()", "operation "+operation, serviceID)
+	for _, deployer := range c.registeredDeployers {
+		if deployer.DoesDeploy(serviceID) {
+			return deployer.LastOperation(instanceID, c.k8sclient, c.osClientFactory)
 		}
 	}
-	return nil, errors.New("Unimplemented")
+
+	return &brokerapi.LastOperationResponse{State: brokerapi.StateFailed, Description: "Could not find deployer for " + serviceID}, nil
 }
 
-func (c *userProvidedController) RemoveServiceSlice(
+func (c *userProvidedController) RemoveServiceInstance(
 	instanceID,
 	serviceID,
 	planID string,
 	acceptsIncomplete bool,
 ) (*brokerapi.DeleteServiceInstanceResponse, error) {
-	glog.Info("Removing shared service slice ", instanceID)
-
-	if err := c.sharedServiceSliceClient.Delete(instanceID, metav1.NewDeleteOptions(10)); err != nil {
-		glog.Error("failed to delete the slice ", err)
-		if kerrors.IsNotFound(err) {
-			return &brokerapi.DeleteServiceInstanceResponse{}, nil
-		}
-		return nil, err
-	}
+	glog.Info("RemoveServiceInstance()", instanceID)
 	return &brokerapi.DeleteServiceInstanceResponse{}, nil
 }
 
