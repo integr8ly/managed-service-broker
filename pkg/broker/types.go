@@ -1,6 +1,5 @@
 package broker
 
-
 // Service represents a service (of which there may be many variants-- "plans")
 // offered by a service broker
 //
@@ -17,8 +16,6 @@ type Service struct {
 	PlanUpdateable  bool          `json:"plan_updateable,omitempty"`
 	Plans           []ServicePlan `json:"plans"`
 }
-
-
 
 // ServicePlan is the Open Service API compatible struct for service plans.
 // It comes with with JSON struct tags to match the API spec
@@ -77,7 +74,7 @@ type ContextProfile struct {
 type CreateServiceInstanceResponse struct {
 	DashboardURL string `json:"dashboard_url,omitempty"`
 	Operation    string `json:"operation,omitempty"`
-	Code int `json:"-"`
+	Code         int    `json:"-"`
 }
 
 // DeleteServiceInstanceRequest represents a request to a broker to deprovision an
@@ -109,13 +106,17 @@ type LastOperationResponse struct {
 	Description string `json:"description,omitempty"`
 }
 
+type BrokerResponseError struct {
+	Code        int    `json:"-"`
+	Description string `json:"description,omitempty"`
+}
+
 // Defines the possible states of an asynchronous request to a broker
 const (
 	StateInProgress = "in progress"
 	StateSucceeded  = "succeeded"
 	StateFailed     = "failed"
 )
-
 
 // ServiceBinding represents a binding to a service instance
 type ServiceBinding struct {
@@ -147,7 +148,6 @@ type CreateServiceBindingResponse struct {
 // Credential represents connection details, username, and password that are
 // provisioned when a consumer binds to a service instance
 type Credential map[string]interface{}
-
 
 // Schemas represents a plan's schemas for service instance and binding create
 // and update.
@@ -187,4 +187,3 @@ type RequestResponseSchema struct {
 type Catalog struct {
 	Services []*Service `json:"services"`
 }
-

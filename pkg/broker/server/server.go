@@ -146,13 +146,19 @@ func (s *server) createServiceInstance(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if result, err := s.controller.CreateServiceInstance(id, &req); err == nil {
-		status := http.StatusCreated
-		if result.Code != 0 {
-			status = result.Code
+		if result.Code == 0 {
+			result.Code = http.StatusCreated
 		}
-		util.WriteResponse(w, status, result)
+		util.WriteResponse(w, result.Code, result)
 	} else {
-		util.WriteErrorResponse(w, http.StatusBadRequest, err)
+		if result.Code == 0 {
+			result.Code = http.StatusBadRequest
+		}
+
+		util.WriteResponse(w, result.Code, &brokerapi.BrokerResponseError{
+			Code:        result.Code,
+			Description: err.Error(),
+		})
 	}
 }
 
