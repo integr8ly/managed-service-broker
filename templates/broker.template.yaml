@@ -53,6 +53,10 @@ objects:
                   fieldPath: metadata.namespace
             - name: ROUTE_SUFFIX
               value: ${ROUTE_SUFFIX}
+            - name: LAUNCHER_DASHBOARD_URL
+              value: ${LAUNCHER_DASHBOARD_URL}
+            - name: CHE_DASHBOARD_URL
+              value: ${CHE_DASHBOARD_URL}
             ports:
             - containerPort: 8080
             readinessProbe:
@@ -115,6 +119,14 @@ parameters:
 
   - name: ROUTE_SUFFIX
     description: Cluster route subdomain
+    required: true
+
+  - name: LAUNCHER_DASHBOARD_URL
+    description: Launcher dasbhoard url
+    required: true
+  
+  - name: CHE_DASHBOARD_URL
+    description: Che dasbhoard url
     required: true
 
   - name: CA_BUNDLE
