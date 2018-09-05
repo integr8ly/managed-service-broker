@@ -22,8 +22,8 @@ func getCatalogServicesObj() []*brokerapi.Service {
 			Metadata:    map[string]string{"serviceName": "fuse", "serviceType": "fuse"},
 			Plans: []brokerapi.ServicePlan{
 				brokerapi.ServicePlan{
-					Name:        "default",
-					ID:          "default",
+					Name:        "default-fuse",
+					ID:          "default-fuse",
 					Description: "default fuse plan",
 					Free:        true,
 					Schemas: &brokerapi.Schemas{

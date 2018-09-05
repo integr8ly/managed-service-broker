@@ -14,7 +14,9 @@ import (
 	"github.com/aerogear/managed-services-broker/pkg/broker/controller"
 	"github.com/aerogear/managed-services-broker/pkg/broker/server"
 	"github.com/aerogear/managed-services-broker/pkg/clients/openshift"
+	"github.com/aerogear/managed-services-broker/pkg/deploys/che"
 	"github.com/aerogear/managed-services-broker/pkg/deploys/fuse"
+	"github.com/aerogear/managed-services-broker/pkg/deploys/launcher"
 	"github.com/operator-framework/operator-sdk/pkg/k8sclient"
 	"github.com/pkg/errors"
 	glog "github.com/sirupsen/logrus"
@@ -79,6 +81,8 @@ func runWithContext(ctx context.Context) error {
 	ctrlr := controller.CreateController(namespace, k8sClient, osClient)
 
 	ctrlr.RegisterDeployer(fuse.NewDeployer("fuse-deployer"))
+	ctrlr.RegisterDeployer(launcher.NewDeployer("launcher-deployer"))
+	ctrlr.RegisterDeployer(che.NewDeployer("che-deployer"))
 	ctrlr.Catalog()
 
 	if options.TLSCert == "" && options.TLSKey == "" {
