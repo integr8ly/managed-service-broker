@@ -2,6 +2,7 @@ package fuse
 
 import (
 	"net/http"
+	"strings"
 
 	brokerapi "github.com/aerogear/managed-services-broker/pkg/broker"
 	"github.com/aerogear/managed-services-broker/pkg/clients/openshift"
@@ -142,7 +143,7 @@ func (fd *FuseDeployer) LastOperation(instanceID string, k8sclient kubernetes.In
 func (fd *FuseDeployer) createRoleBindings(namespace string, k8sclient kubernetes.Interface, osClientFactory *openshift.ClientFactory) error {
 	for _, sysRoleBinding := range getSystemRoleBindings(namespace) {
 		_, err := k8sclient.RbacV1beta1().RoleBindings(namespace).Create(&sysRoleBinding)
-		if err != nil {
+		if err != nil && !strings.Contains(err.Error(), "already exists") {
 			return errors.Wrapf(err, "failed to create rolebinding for %s", &sysRoleBinding.ObjectMeta.Name)
 		}
 	}
