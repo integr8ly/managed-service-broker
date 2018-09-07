@@ -70,7 +70,7 @@ kind: ClusterServiceBroker
     caBundle: LS0tLS1CRUd...
 ```
 
-To get the caBunlde, run:
+To get the caBundle, run:
 ```sh
 oc get secret -n kube-service-catalog -o go-template='{{ range .items }}{{ if eq .type "kubernetes.io/service-account-token" }}{{ index .data "service-ca.crt" }}{{end}}{{"\n"}}{{end}}' | tail -n1
 ```
@@ -78,4 +78,10 @@ oc get secret -n kube-service-catalog -o go-template='{{ range .items }}{{ if eq
 To prompt the catalog to read the broker's catalog end-point, you can use:
 ```
 svcat sync broker managed-services-broker
+```
+
+## Building and Pushing the Docker Image
+In order to build and push the image, run the following command:
+```
+make build_and_push DOCKERORG=<yourDockerOrg>
 ```
