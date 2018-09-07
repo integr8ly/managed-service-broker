@@ -383,7 +383,7 @@ func getFuseObj(userNamespace string) *v1alpha1.Syndesis {
 			Name: "fuse",
 		},
 		Spec: v1alpha1.SyndesisSpec{
-			UserNamespace:        userNamespace,
+			SarNamespace:         userNamespace,
 			DemoData:             &demoData,
 			DeployIntegrations:   &deployIntegrations,
 			ImageStreamNamespace: "",

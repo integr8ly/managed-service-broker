@@ -41,7 +41,7 @@ type SyndesisSpec struct {
 	Registry             string          `json:"registry,omitempty"`
 	Components           ComponentsSpec  `json:"components,omitempty"`
 	OpenShiftConsoleUrl  string          `json:"openShiftConsoleUrl,omitempty"`
-	UserNamespace        string          `json:"userNamespace,omitempty"`
+	SarNamespace         string          `json:"sarNamespace,omitempty"`
 }
 
 type IntegrationSpec struct {
