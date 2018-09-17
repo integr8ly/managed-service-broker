@@ -17,3 +17,7 @@ build_image: build_binary
 .phony: build_binary
 build_binary:
 	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o ./tmp/_output/bin/$(BROKER_IMAGE_NAME) ./cmd/broker
+
+.phony: run
+run:
+	KUBERNETES_CONFIG=$(HOME)/.kube/config ./tmp/_output/bin/managed-services-broker --port 8080

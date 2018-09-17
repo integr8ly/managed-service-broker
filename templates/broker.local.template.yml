@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: Template
+metadata:
+  name: msb
+objects:
+  - apiVersion: servicecatalog.k8s.io/v1beta1
+    kind: ClusterServiceBroker
+    metadata:
+      name: msb-local
+    spec:
+      url: ${URL}
+
+parameters:
+- name: URL
+  description: Url to local running broker
+  value: "http://192.168.99.1:8080"
