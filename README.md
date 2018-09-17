@@ -2,23 +2,38 @@
 
 ## Deploying the broker
 
-An OpenShift template in the `templates` directory of this repo is used to deploy the broker to a running OpenShift cluster. This assumes that you've installed Service Catalog onto your cluster and also have the [`svcat` command line tool](https://github.com/kubernetes-incubator/service-catalog/blob/master/docs/install.md) installed.
+#### Start an OpenShift cluster with the Service Catalog
+```sh
+#Version v3.10
+oc cluster up
+oc cluster add service-catalog
+```
+
+#### Deploy managed-services-broker
+An OpenShift template in the `templates` directory of this repo is used to deploy the broker to a running OpenShift cluster.
+This assumes that the [`svcat` command line tool](https://github.com/kubernetes-incubator/service-catalog/blob/master/docs/install.md) is installed.
 
 ```sh
 # Build and push the broker image
 make build_image <DOCKERORG=yourDockerOrg>
 make push <DOCKERORG=yourDockerOrg>
 
-# Switch to a new project
-oc new-project managed-services-broker
+# Login as admin user
+oc login -u system:admin
 
-# Set role for the broker
-oc create -f deploy/rbac.yaml
+# Switch to a new project
+oc new-project <project-name>
 
 # Process the template and create the broker deployment
-oc process -f templates/broker.template.yaml -p ROUTE_SUFFIX=<clusterRouteSubDomain> -p IMAGE_ORG=<yourDockerOrg> | oc create -f -
+oc process -f templates/broker.template.yaml \
+-p NAMESPACE=<project-name> \
+-p ROUTE_SUFFIX=<clusterRouteSubDomain> \
+-p IMAGE_ORG=<yourDockerOrg> \
+-p CHE_DASHBOARD_URL=<cheDashBoardUrl> \
+-p LAUNCHER_DASHBOARD_URL=<launcherDashBoardUrl> \
+| oc create -f -
 
-# Verify that the broker has been registered correctly
+# Verify that the broker has been registered correctly and STATUS is 'Ready'
 svcat get brokers
 
 # View the status of the broker
