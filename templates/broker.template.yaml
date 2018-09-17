@@ -96,11 +96,84 @@ objects:
       name: managed-services-broker
     spec:
       url: http://msb.${NAMESPACE}.svc
+  - apiVersion: rbac.authorization.k8s.io/v1beta1
+    kind: Role
+    metadata:
+      name: managed-services
+    rules:
+    - apiGroups:
+      - aerogear.org
+      - syndesis.io
+      resources:
+      - "*"
+      verbs:
+      - "*"
+    - apiGroups:
+      - ""
+      resources:
+      - pods
+      - services
+      - endpoints
+      - persistentvolumeclaims
+      - events
+      - configmaps
+      - secrets
+      - namespaces
+      - serviceaccounts
+      verbs:
+      - "*"
+    - apiGroups:
+      - apps
+      resources:
+      - deployments
+      - daemonsets
+      - replicasets
+      - statefulsets
+      verbs:
+      - "*"
+
+  - apiVersion: rbac.authorization.k8s.io/v1beta1
+    kind: RoleBinding
+    metadata:
+      name: default-account-managed-services
+    subjects:
+    - kind: ServiceAccount
+      name: default
+    roleRef:
+      kind: Role
+      name: managed-services
+      apiGroup: rbac.authorization.k8s.io
+
+  - apiVersion: rbac.authorization.k8s.io/v1
+    kind: ClusterRole
+    metadata:
+      name: managed-services
+    rules:
+    - apiGroups:
+      - "*"
+      resources:
+      - "*"
+      verbs:
+      - "*"
+
+  - apiVersion: rbac.authorization.k8s.io/v1
+    kind: ClusterRoleBinding
+    metadata:
+      name: default-cluster-account-managed-services
+    subjects:
+    - kind: ServiceAccount
+      name: default
+      namespace: ${NAMESPACE}
+    roleRef:
+      kind: ClusterRole
+      name: managed-services
+      apiGroup: rbac.authorization.k8s.io
 
 parameters:
   - name: NAMESPACE
     description: Namespace of the project that is being deployed to
     value: "managed-services-broker"
+    required: true
 
   - name: IMAGE_ORG
     description: Name of the broker image org
@@ -124,7 +197,7 @@ parameters:
   - name: LAUNCHER_DASHBOARD_URL
     description: Launcher dasbhoard url
     required: true
-  
+
   - name: CHE_DASHBOARD_URL
     description: Che dasbhoard url
     required: true
