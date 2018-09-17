@@ -3,6 +3,7 @@ package fuse
 import (
 	"k8s.io/api/authentication/v1"
 	"net/http"
+	"os"
 	"strings"
 
 	brokerapi "github.com/aerogear/managed-services-broker/pkg/broker"
@@ -213,10 +214,7 @@ func (fd *FuseDeployer) createFuseCustomResource(namespace, brokerNamespace, use
 
 	fuseObj := getFuseObj(userNamespace)
 
-	fuseDashboardURL, err := fd.getRouteHostname(namespace, brokerNamespace, k8sclient)
-	if err != nil {
-		return "", errors.Wrap(err, "failed to get fuse dashboard url")
-	}
+	fuseDashboardURL := fd.getRouteHostname(namespace)
 
 	fuseObj.Spec.RouteHostName = fuseDashboardURL
 	_, err = fuseClient.Create(k8sutil.UnstructuredFromRuntimeObject(fuseObj))
@@ -228,21 +226,13 @@ func (fd *FuseDeployer) createFuseCustomResource(namespace, brokerNamespace, use
 }
 
 // Get route hostname for fuse
-func (fd *FuseDeployer) getRouteHostname(namespace, brokerNamespace string, k8sclient kubernetes.Interface) (string, error) {
-	brokerDeployment, err := k8sclient.ExtensionsV1beta1().Deployments(brokerNamespace).Get("msb", metav1.GetOptions{})
-	if err != nil {
-		glog.Errorf("Failed to get managed services broker deployment: %+v", err)
-		return "", errors.Wrap(err, "failed to get managed services broker deployment")
+func (fd *FuseDeployer) getRouteHostname(namespace string) string {
+	routeHostname := namespace
+	routeSuffix, exists := os.LookupEnv("ROUTE_SUFFIX")
+	if exists {
+		routeHostname = routeHostname + "." + routeSuffix
 	}
-
-	for _, v := range brokerDeployment.Spec.Template.Spec.Containers[0].Env {
-		if v.Name == "ROUTE_SUFFIX" {
-			return namespace + "." + v.Value, nil
-		}
-	}
-
-	glog.Errorf("Failed to get cluster route subdomain from the managed services broker ROUTE_SUFFIX environment variable")
-	return "", errors.Wrap(err, "failed to get cluster route subdomain")
+	return routeHostname
 }
 
 func (fd *FuseDeployer) getPodStatus(podName, namespace string, dcClient *appsv1.AppsV1Client) (string, string, error) {
