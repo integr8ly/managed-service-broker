@@ -222,12 +222,12 @@ func getImageStreamObj() *imagev1.ImageStream {
 				{
 					From: &corev1.ObjectReference{
 						Kind: "DockerImage",
-						Name: "docker.io/jameelb/syndesis-operator:latest", // NOTE: Point this to own version of syndesis-operator for auth
+						Name: "docker.io/jameelb/syndesis-operator:1.4.8", // NOTE: Point this to own version of syndesis-operator for auth
 					},
 					ImportPolicy: imagev1.TagImportPolicy{
 						Scheduled: true,
 					},
-					Name: "latest",
+					Name: "fuse-7.1",
 				},
 			},
 		},
@@ -297,7 +297,7 @@ func getDeploymentConfigObj() *appsv1.DeploymentConfig {
 						},
 						From: corev1.ObjectReference{
 							Kind: "ImageStreamTag",
-							Name: "syndesis-operator:latest",
+							Name: "syndesis-operator:fuse-7.1",
 						},
 					},
 					Type: "ImageChange",
