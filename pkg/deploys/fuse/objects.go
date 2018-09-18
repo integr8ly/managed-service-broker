@@ -179,6 +179,30 @@ func getViewRoleBindingObj() *authv1.RoleBinding {
 	}
 }
 
+func getUserViewRoleBindingObj(namespace, username string) *authv1.RoleBinding {
+	return &authv1.RoleBinding{
+		ObjectMeta: metav1.ObjectMeta{
+			GenerateName: "syndesis-operator:view-",
+			Namespace:    namespace,
+			Labels: map[string]string{
+				"app":                   "syndesis",
+				"syndesis.io/app":       "syndesis",
+				"syndesis.io/type":      "operator",
+				"syndesis.io/component": "syndesis-operator",
+			},
+		},
+		RoleRef: corev1.ObjectReference{
+			Name: "view",
+		},
+		Subjects: []corev1.ObjectReference{
+			{
+				Kind: "User",
+				Name: username,
+			},
+		},
+	}
+}
+
 func getEditRoleBindingObj() *authv1.RoleBinding {
 	return &authv1.RoleBinding{
 		ObjectMeta: metav1.ObjectMeta{

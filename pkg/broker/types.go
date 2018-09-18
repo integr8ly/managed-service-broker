@@ -1,5 +1,7 @@
 package broker
 
+import "k8s.io/api/authentication/v1"
+
 // Service represents a service (of which there may be many variants-- "plans")
 // offered by a service broker
 //
@@ -47,13 +49,14 @@ type ServiceInstance struct {
 // CreateServiceInstanceRequest represents a request to a broker to provision an
 // instance of a service
 type CreateServiceInstanceRequest struct {
-	OrgID             string                 `json:"organization_guid,omitempty"`
-	PlanID            string                 `json:"plan_id,omitempty"`
-	ServiceID         string                 `json:"service_id,omitempty"`
-	SpaceID           string                 `json:"space_guid,omitempty"`
-	Parameters        map[string]interface{} `json:"parameters,omitempty"`
-	AcceptsIncomplete bool                   `json:"accepts_incomplete,omitempty"`
-	ContextProfile    ContextProfile         `json:"context,omitempty"`
+	OrgID               string                 `json:"organization_guid,omitempty"`
+	PlanID              string                 `json:"plan_id,omitempty"`
+	ServiceID           string                 `json:"service_id,omitempty"`
+	SpaceID             string                 `json:"space_guid,omitempty"`
+	Parameters          map[string]interface{} `json:"parameters,omitempty"`
+	AcceptsIncomplete   bool                   `json:"accepts_incomplete,omitempty"`
+	ContextProfile      ContextProfile         `json:"context,omitempty"`
+	OriginatingUserInfo v1.UserInfo            `json:"user,omitempty"`
 }
 
 // ContextProfilePlatformKubernetes is a constant to send when the

@@ -140,6 +140,10 @@ func (s *server) createServiceInstance(w http.ResponseWriter, r *http.Request) {
 		util.WriteErrorResponse(w, http.StatusBadRequest, err)
 		return
 	}
+	if err := util.GetOriginatingUserInfo(r, &req.OriginatingUserInfo); err != nil {
+		glog.Errorf("error retrieving originating user info: %v", err)
+		util.WriteErrorResponse(w, http.StatusBadRequest, err)
+	}
 
 	if req.Parameters == nil {
 		req.Parameters = make(map[string]interface{})

@@ -1,6 +1,7 @@
 package fuse
 
 import (
+	"k8s.io/api/authentication/v1"
 	"net/http"
 	"strings"
 
@@ -36,7 +37,7 @@ func (fd *FuseDeployer) GetID() string {
 	return fd.id
 }
 
-func (fd *FuseDeployer) Deploy(instanceID, brokerNamespace string, contextProfile brokerapi.ContextProfile, k8sclient kubernetes.Interface, osClientFactory *openshift.ClientFactory) (*brokerapi.CreateServiceInstanceResponse, error) {
+func (fd *FuseDeployer) Deploy(instanceID, brokerNamespace string, contextProfile brokerapi.ContextProfile, userInfo v1.UserInfo, k8sclient kubernetes.Interface, osClientFactory *openshift.ClientFactory) (*brokerapi.CreateServiceInstanceResponse, error) {
 	glog.Infof("Deploying fuse from deployer, id: %s", instanceID)
 
 	// Namespace
@@ -69,7 +70,7 @@ func (fd *FuseDeployer) Deploy(instanceID, brokerNamespace string, contextProfil
 	}
 
 	// RoleBindings
-	err = fd.createRoleBindings(namespace, k8sclient, osClientFactory)
+	err = fd.createRoleBindings(namespace, userInfo, k8sclient, osClientFactory)
 	if err != nil {
 		glog.Errorln(err)
 		return &brokerapi.CreateServiceInstanceResponse{
@@ -140,7 +141,7 @@ func (fd *FuseDeployer) LastOperation(instanceID string, k8sclient kubernetes.In
 	}, nil
 }
 
-func (fd *FuseDeployer) createRoleBindings(namespace string, k8sclient kubernetes.Interface, osClientFactory *openshift.ClientFactory) error {
+func (fd *FuseDeployer) createRoleBindings(namespace string, userInfo v1.UserInfo, k8sclient kubernetes.Interface, osClientFactory *openshift.ClientFactory) error {
 	for _, sysRoleBinding := range getSystemRoleBindings(namespace) {
 		_, err := k8sclient.RbacV1beta1().RoleBindings(namespace).Create(&sysRoleBinding)
 		if err != nil && !strings.Contains(err.Error(), "already exists") {
@@ -166,6 +167,11 @@ func (fd *FuseDeployer) createRoleBindings(namespace string, k8sclient kubernete
 	_, err = authClient.RoleBindings(namespace).Create(getEditRoleBindingObj())
 	if err != nil {
 		return errors.Wrap(err, "failed to create edit role binding for fuse service")
+	}
+
+	_, err = authClient.RoleBindings(namespace).Create(getUserViewRoleBindingObj(namespace, userInfo.Username))
+	if err != nil {
+		return errors.Wrap(err, "failed to create user view role binding for fuse service")
 	}
 
 	return nil
