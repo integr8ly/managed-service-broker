@@ -100,3 +100,65 @@ In order to build and push the image, run the following command:
 ```
 make build_and_push DOCKERORG=<yourDockerOrg>
 ```
+
+# Local Development (Minishift)
+
+Guide to building and running the broker locally and connecting it to a minishift VM.
+
+Note: This was tested using minsihift but the same steps should work with any OpenShift cluster (oc cluster up) that has access to your host machine.
+
+## Start minishift VM:
+
+OpenShift Version 3.9.0:
+```
+$ minishift start --openshift-version v3.9.0 --extra-clusterup-flags "--service-catalog"
+```
+
+OpenShift Version 3.10.0:
+```
+$ minishift start --openshift-version v3.10.0 --extra-clusterup-flags "--enable=*,service-catalog"
+```
+
+```
+$ oc login -u system:admin && oc adm policy add-cluster-role-to-user cluster-admin developer && oc login -u developer -p any && minishift console
+$ eval $(minishift docker-env)
+```
+
+## Add syndesis-crd:
+
+```
+$ oc create -f https://raw.githubusercontent.com/syndesisio/syndesis/master/install/operator/deploy/syndesis-crd.yml
+```
+
+## Setup local broker:
+
+When setting up the broker we need to set the URL that the OpenShift cluster can access your locally running broker on. In the case of minishift this will be something like "192.168.99.1"
+```
+$ oc process -f templates/broker.local.template.yml -p URL=http://192.168.99.1:8080 | oc create -f -
+```
+
+Alternatively, if you already have a running managed service broker in your cluster you can patch the existing resource:
+```
+$ oc patch clusterservicebroker/managed-services-broker --patch '{"spec":{"url": "http://192.168.99.1:8080"}}'
+```
+
+## Build and run the broker locally:
+```
+$ make build_binary run
+CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o ./tmp/_output/bin/managed-services-broker ./cmd/broker
+KUBERNETES_CONFIG=/home/mnairn/.kube/config ./tmp/_output/bin/managed-services-broker --port 8080
+INFO[0000] Catalog()
+INFO[0000] Getting fuse catalog entries
+INFO[0000] Getting launcher catalog entries
+INFO[0000] Getting che catalog entries
+INFO[0000] Starting server on :8080
+```
+
+## Verify the broker exists:
+```
+$ svcat get brokers
+           NAME                                                        URL                                              STATUS
++-------------------------+-------------------------------------------------------------------------------------------+--------+
+  msb-local                 http://192.168.99.1:8080                                                                    Ready
+  template-service-broker   https://apiserver.openshift-template-service-broker.svc:443/brokers/template.openshift.io   Ready
+```
