@@ -37,7 +37,8 @@ type Deployer interface {
 	Deploy(id string, brokerNs string, contextProfile brokerapi.ContextProfile, user v1.UserInfo, k8sclient kubernetes.Interface, osclient *openshift.ClientFactory) (*brokerapi.CreateServiceInstanceResponse, error)
 	LastOperation(instanceID string, k8sclient kubernetes.Interface, osclient *openshift.ClientFactory) (*brokerapi.LastOperationResponse, error)
 	GetID() string
-	DoesDeploy(serviceID string) bool
+	IsForService(serviceID string) bool
+	RemoveDeploy(serviceInstanceId string, namespace string, k8sclient kubernetes.Interface) error
 }
 
 // Controller defines the APIs that all controllers are expected to support. Implementations
@@ -113,7 +114,7 @@ func (c *userProvidedController) CreateServiceInstance(
 ) (*brokerapi.CreateServiceInstanceResponse, error) {
 	glog.Infof("Create service instance: %s, user: %s", req.ServiceID, req.OriginatingUserInfo.Username)
 	for _, deployer := range c.registeredDeployers {
-		if deployer.DoesDeploy(req.ServiceID) {
+		if deployer.IsForService(req.ServiceID) {
 			return deployer.Deploy(instanceID, c.brokerNS, req.ContextProfile, req.OriginatingUserInfo, c.k8sclient, c.osClientFactory)
 		}
 	}
@@ -129,7 +130,7 @@ func (c *userProvidedController) GetServiceInstanceLastOperation(
 ) (*brokerapi.LastOperationResponse, error) {
 	glog.Info("GetServiceInstanceLastOperation()", "operation "+operation, serviceID)
 	for _, deployer := range c.registeredDeployers {
-		if deployer.DoesDeploy(serviceID) {
+		if deployer.IsForService(serviceID) {
 			return deployer.LastOperation(instanceID, c.k8sclient, c.osClientFactory)
 		}
 	}
@@ -144,6 +145,17 @@ func (c *userProvidedController) RemoveServiceInstance(
 	acceptsIncomplete bool,
 ) (*brokerapi.DeleteServiceInstanceResponse, error) {
 	glog.Info("RemoveServiceInstance()", instanceID)
+
+	for _, deployer := range c.registeredDeployers {
+		if deployer.IsForService(serviceID) {
+			glog.Info("RemoveDeploy()", instanceID)
+			err := deployer.RemoveDeploy(instanceID, c.brokerNS, c.k8sclient); if err != nil {
+				glog.Errorf("failed to remove service instance", err)
+				return &brokerapi.DeleteServiceInstanceResponse{}, err
+			}
+		}
+	}
+
 	return &brokerapi.DeleteServiceInstanceResponse{}, nil
 }
 

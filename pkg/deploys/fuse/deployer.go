@@ -1,6 +1,7 @@
 package fuse
 
 import (
+	"fmt"
 	"net/http"
 	"os"
 	"strings"
@@ -26,7 +27,7 @@ func NewDeployer(id string) *FuseDeployer {
 	return &FuseDeployer{id: id}
 }
 
-func (fd *FuseDeployer) DoesDeploy(serviceID string) bool {
+func (fd *FuseDeployer) IsForService(serviceID string) bool {
 	return serviceID == "fuse-service-id"
 }
 
@@ -112,6 +113,17 @@ func (fd *FuseDeployer) Deploy(instanceID, brokerNamespace string, contextProfil
 		DashboardURL: dashboardURL,
 	}, nil
 }
+
+func (fd *FuseDeployer) RemoveDeploy(serviceInstanceId string, namespace string, k8sclient kubernetes.Interface) error {
+	ns := "fuse-" + serviceInstanceId
+	err := k8sclient.CoreV1().Namespaces().Delete(ns, &metav1.DeleteOptions{})
+	if err != nil {
+		glog.Errorf("failed to delete %s namespace: %+v", ns, err)
+		return errors.Wrap(err, fmt.Sprintf("failed to delete namespace %s", ns))
+	}
+	return nil
+}
+
 
 func (fd *FuseDeployer) LastOperation(instanceID string, k8sclient kubernetes.Interface, osclient *openshift.ClientFactory) (*brokerapi.LastOperationResponse, error) {
 	glog.Infof("Getting last operation for %s", instanceID)

@@ -19,20 +19,20 @@ func NewDeployer(id string) *CheDeployer {
 	return &CheDeployer{id: id}
 }
 
-func (fd *CheDeployer) DoesDeploy(serviceID string) bool {
+func (cd *CheDeployer) IsForService(serviceID string) bool {
 	return serviceID == "che-service-id"
 }
 
-func (fd *CheDeployer) GetCatalogEntries() []*brokerapi.Service {
+func (cd *CheDeployer) GetCatalogEntries() []*brokerapi.Service {
 	glog.Infof("Getting che catalog entries")
 	return getCatalogServicesObj()
 }
 
-func (fd *CheDeployer) GetID() string {
-	return fd.id
+func (cd *CheDeployer) GetID() string {
+	return cd.id
 }
 
-func (fd *CheDeployer) Deploy(instanceID, brokerNamespace string, contextProfile brokerapi.ContextProfile, userInfo v1.UserInfo, k8sclient kubernetes.Interface, osClientFactory *openshift.ClientFactory) (*brokerapi.CreateServiceInstanceResponse, error) {
+func (cd *CheDeployer) Deploy(instanceID, brokerNamespace string, contextProfile brokerapi.ContextProfile, userInfo v1.UserInfo, k8sclient kubernetes.Interface, osClientFactory *openshift.ClientFactory) (*brokerapi.CreateServiceInstanceResponse, error) {
 	glog.Infof("Deploying che from deployer, id: %s", instanceID)
 
 	dashboardUrl := os.Getenv("CHE_DASHBOARD_URL")
@@ -43,7 +43,11 @@ func (fd *CheDeployer) Deploy(instanceID, brokerNamespace string, contextProfile
 	}, nil
 }
 
-func (fd *CheDeployer) LastOperation(instanceID string, k8sclient kubernetes.Interface, osclient *openshift.ClientFactory) (*brokerapi.LastOperationResponse, error) {
+func (cd *CheDeployer) RemoveDeploy(serviceInstanceId string, namespace string, k8sclient kubernetes.Interface) error {
+	return nil
+}
+
+func (cd *CheDeployer) LastOperation(instanceID string, k8sclient kubernetes.Interface, osclient *openshift.ClientFactory) (*brokerapi.LastOperationResponse, error) {
 	glog.Infof("Getting last operation for %s", instanceID)
 
 	return &brokerapi.LastOperationResponse{

@@ -1,6 +1,8 @@
 package broker
 
-import "k8s.io/api/authentication/v1"
+import (
+	"k8s.io/api/authentication/v1"
+)
 
 // Service represents a service (of which there may be many variants-- "plans")
 // offered by a service broker
@@ -189,4 +191,16 @@ type RequestResponseSchema struct {
 // to an open service broker compatible API
 type Catalog struct {
 	Services []*Service `json:"services"`
+}
+
+type ServiceBrokerError struct {
+	Error        string `json:"error,omitempty"`
+	Description  string `json:"description,omitempty"`
+}
+
+func NewUnprocessableEntityError() *ServiceBrokerError{
+	return &ServiceBrokerError{
+		Error:       "AsyncRequired",
+		Description: "This Service Plan requires client support for asynchronous service operations.",
+	}
 }
