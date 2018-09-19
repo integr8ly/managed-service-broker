@@ -17,13 +17,14 @@ limitations under the License.
 package util
 
 import (
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"github.com/pkg/errors"
 	"io/ioutil"
 	"net/http"
 	"os/exec"
 	"strings"
-
 )
 
 // WriteResponse will serialize 'object' to the HTTP ResponseWriter
@@ -132,6 +133,23 @@ func FetchObject(u string, object interface{}) error {
 
 	err = json.Unmarshal(body, object)
 	if err != nil {
+		return err
+	}
+	return nil
+}
+
+// Parses a request to retrieve the originating user info as described here https://github.com/openservicebrokerapi/servicebroker/blob/master/spec.md#originating-identity
+func GetOriginatingUserInfo(r *http.Request, object interface{}) error {
+	header := r.Header.Get("X-Broker-API-Originating-Identity")
+	headerParts := strings.Split(header, " ")
+	if len(headerParts) != 2 {
+		return errors.Errorf("unexpected X-Broker-API-Originating-Identity header value %s", header)
+	}
+	userData, err := base64.StdEncoding.DecodeString(headerParts[1])
+	if err != nil {
+		return err
+	}
+	if err := json.Unmarshal(userData, object); err != nil {
 		return err
 	}
 	return nil
