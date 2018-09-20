@@ -177,7 +177,7 @@ parameters:
 
   - name: IMAGE_ORG
     description: Name of the broker image org
-    value: aerogear
+    value: quay.io/integreatly
 
   - name: IMAGE_NAME
     description: Name of the broker image
