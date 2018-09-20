@@ -1,5 +1,5 @@
 TAG = 1.0.0
-DOCKERORG = aerogear
+DOCKERORG = quay.io/integreatly
 BROKER_IMAGE_NAME = managed-services-broker
 
 .phony: build_and_push
