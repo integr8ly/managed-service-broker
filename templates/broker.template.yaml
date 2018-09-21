@@ -96,65 +96,86 @@ objects:
       name: managed-services-broker
     spec:
       url: http://msb.${NAMESPACE}.svc
-  - apiVersion: rbac.authorization.k8s.io/v1beta1
-    kind: Role
-    metadata:
-      name: managed-services
-    rules:
-    - apiGroups:
-      - aerogear.org
-      - syndesis.io
-      resources:
-      - "*"
-      verbs:
-      - "*"
-    - apiGroups:
-      - ""
-      resources:
-      - pods
-      - services
-      - endpoints
-      - persistentvolumeclaims
-      - events
-      - configmaps
-      - secrets
-      - namespaces
-      - serviceaccounts
-      verbs:
-      - "*"
-    - apiGroups:
-      - apps
-      resources:
-      - deployments
-      - daemonsets
-      - replicasets
-      - statefulsets
-      verbs:
-      - "*"
 
-  - apiVersion: rbac.authorization.k8s.io/v1beta1
-    kind: RoleBinding
-    metadata:
-      name: default-account-managed-services
-    subjects:
-    - kind: ServiceAccount
-      name: default
-    roleRef:
-      kind: Role
-      name: managed-services
-      apiGroup: rbac.authorization.k8s.io
-
-  - apiVersion: rbac.authorization.k8s.io/v1
+  - apiVersion: authorization.openshift.io/v1
     kind: ClusterRole
     metadata:
       name: managed-services
     rules:
     - apiGroups:
-      - "*"
+      - ""
       resources:
-      - "*"
-      verbs:
-      - "*"
+      - namespaces
+      verbs: ["create"]
+    - apiGroups:
+      - rbac.authorization.k8s.io
+      resourceNames: ["edit", "view", "system:deployer", "system:image-builder", "system:image-puller"]
+      resources:
+      - clusterroles
+      verbs: ["bind"]
+    - apiGroups:
+      - rbac.authorization.k8s.io
+      resources:
+      - roles
+      verbs: ["create"]
+    - apiGroups:
+      - syndesis.io
+      resources:
+      - syndesises
+      - syndesises/finalizers
+      verbs: ["create", "delete", "deletecollection", "get", "list", "update", "watch"]
+    - apiGroups:
+      - ""
+      resources:
+      - configmaps
+      - endpoints
+      - persistentvolumeclaims
+      - pods
+      - secrets
+      - serviceaccounts
+      - services
+      verbs: ["create", "delete", "deletecollection", "get", "list", "update", "watch"]
+    - apiGroups:
+      - ""
+      resources:
+      - events
+      verbs: ["get", "list"]
+    - apiGroups:
+      - rbac.authorization.k8s.io
+      resources:
+      - rolebindings
+      verbs: ["create", "delete", "deletecollection", "get", "list", "update", "watch"]
+    - apiGroups:
+      - template.openshift.io
+      resources:
+      - processedtemplates
+      verbs: ["create", "delete", "deletecollection", "get", "list", "update", "watch"]
+    - apiGroups:
+      - image.openshift.io
+      resources:
+      - imagestreams
+      verbs: ["create", "delete", "deletecollection", "get", "list", "update", "watch"]
+    - apiGroups:
+      - apps.openshift.io
+      resources:
+      - deploymentconfigs
+      verbs: ["create", "delete", "deletecollection", "get", "list", "update", "watch"]
+    - apiGroups:
+      - build.openshift.io
+      resources:
+      - buildconfigs
+      verbs: ["create", "delete", "deletecollection", "get", "list", "update", "watch"]
+    - apiGroups:
+      - authorization.openshift.io
+      resources:
+      - rolebindings
+      verbs: ["create", "delete", "deletecollection", "get", "list", "update", "watch"]
+    - apiGroups:
+      - route.openshift.io
+      resources:
+      - routes
+      - routes/custom-host
+      verbs: ["create", "delete", "deletecollection", "get", "list", "update", "watch"]
 
   - apiVersion: rbac.authorization.k8s.io/v1
     kind: ClusterRoleBinding
