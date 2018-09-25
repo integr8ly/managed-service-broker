@@ -21,3 +21,7 @@ build_binary:
 .phony: run
 run:
 	KUBERNETES_CONFIG=$(HOME)/.kube/config ./tmp/_output/bin/managed-services-broker --port 8080
+
+.phony: integration
+integration:
+	go test ./tests/

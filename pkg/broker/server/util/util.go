@@ -20,6 +20,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"github.com/aerogear/managed-services-broker/pkg/broker"
 	"github.com/pkg/errors"
 	"io/ioutil"
 	"net/http"
@@ -45,11 +46,8 @@ func WriteResponse(w http.ResponseWriter, code int, object interface{}) {
 // with JSON formatted error response
 // using the 'code' as the HTTP status code
 func WriteErrorResponse(w http.ResponseWriter, code int, err error) {
-	type e struct {
-		Error string
-	}
-	WriteResponse(w, code, &e{
-		Error: err.Error(),
+	WriteResponse(w, code, &broker.ServiceBrokerError{
+		Description: err.Error(),
 	})
 }
 

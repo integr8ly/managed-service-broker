@@ -20,6 +20,7 @@ import (
 	"context"
 	"crypto/tls"
 	"fmt"
+	"k8s.io/apimachinery/pkg/api/errors"
 	"net/http"
 	"time"
 
@@ -30,6 +31,7 @@ import (
 	"github.com/gorilla/mux"
 	glog "github.com/sirupsen/logrus"
 )
+
 
 type server struct {
 	controller controller.Controller
@@ -149,35 +151,91 @@ func (s *server) createServiceInstance(w http.ResponseWriter, r *http.Request) {
 		req.Parameters = make(map[string]interface{})
 	}
 
-	if result, err := s.controller.CreateServiceInstance(id, &req); err == nil {
-		if result.Code == 0 {
-			result.Code = http.StatusCreated
-		}
-		util.WriteResponse(w, result.Code, result)
-	} else {
-		if result.Code == 0 {
-			result.Code = http.StatusBadRequest
-		}
 
-		util.WriteResponse(w, result.Code, &brokerapi.BrokerResponseError{
-			Code:        result.Code,
-			Description: err.Error(),
-		})
+	q := r.URL.Query()
+	async := q.Get("accepts_incomplete") == "true"
+	if async != true {
+		util.WriteResponse(w, http.StatusUnprocessableEntity, brokerapi.NewUnprocessableEntityError())
+		return
+	}
+
+	serviceID := req.Parameters["service_id"]
+	if serviceID == "" {
+		util.WriteErrorResponse(w, http.StatusBadRequest, errors.NewBadRequest("invalid service_id"))
+		return
+	}
+
+	planID := req.Parameters["plan_id"]
+	if planID == "" {
+		util.WriteErrorResponse(w, http.StatusBadRequest, errors.NewBadRequest("invalid plan_id"))
+		return
+	}
+
+	result, err := s.controller.CreateServiceInstance(id, &req)
+	if err != nil {
+		// Should handle:
+		// if the Service Instance already exists error status code 200
+		// if a Service Instance with the same id already exists but with different attributes error status code 409
+		util.WriteErrorResponse(w, http.StatusInternalServerError, err)
+		return
+	}
+
+	if async == true {
+		// Return an identifier representing the operation.
+		util.WriteResponse(w, http.StatusAccepted, result)
+	} else {
+		util.WriteResponse(w, http.StatusCreated, result)
 	}
 }
 
 func (s *server) removeServiceInstance(w http.ResponseWriter, r *http.Request) {
-	instanceID := mux.Vars(r)["instance_id"]
-	q := r.URL.Query()
 	glog.Infof("r: %+v", r)
+
+	instanceID := mux.Vars(r)["instance_id"]
+
+	q := r.URL.Query()
 	serviceID := q.Get("service_id")
 	planID := q.Get("plan_id")
-	acceptsIncomplete := q.Get("accepts_incomplete") == "true"
+	async := q.Get("accepts_incomplete") == "true"
 
-	if result, err := s.controller.RemoveServiceInstance(instanceID, serviceID, planID, acceptsIncomplete); err == nil {
-		util.WriteResponse(w, http.StatusOK, result)
+	if instanceID == "" {
+		util.WriteErrorResponse(w, http.StatusBadRequest, errors.NewBadRequest("invalid instance_uuid"))
+		return
+	}
+
+	if serviceID == "" {
+		util.WriteErrorResponse(w, http.StatusBadRequest, errors.NewBadRequest("invalid service_id"))
+		return
+	}
+
+	if planID == "" {
+		util.WriteErrorResponse(w, http.StatusBadRequest, errors.NewBadRequest("invalid plan_id"))
+		return
+	}
+
+	if planID == "" {
+		util.WriteErrorResponse(w, http.StatusBadRequest, errors.NewBadRequest("invalid plan_id"))
+		return
+	}
+
+	if async != true {
+		util.WriteResponse(w, http.StatusUnprocessableEntity, brokerapi.NewUnprocessableEntityError())
+		return
+	}
+
+	result, err := s.controller.RemoveServiceInstance(instanceID, serviceID, planID, async);
+	if err != nil {
+		// Should handle:
+		// if the Service Instance does not exist status code 410
+		util.WriteErrorResponse(w, http.StatusInternalServerError, err)
+		return
+	}
+
+	if async == true {
+		// Return an identifier representing the operation.
+		util.WriteResponse(w, http.StatusAccepted, result)
 	} else {
-		util.WriteErrorResponse(w, http.StatusBadRequest, err)
+		util.WriteResponse(w, http.StatusOK, result)
 	}
 }
 
