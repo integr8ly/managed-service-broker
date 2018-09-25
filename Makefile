@@ -1,4 +1,4 @@
-TAG = 1.0.0
+TAG = 1.0.1
 DOCKERORG = quay.io/integreatly
 BROKER_IMAGE_NAME = managed-services-broker
 
