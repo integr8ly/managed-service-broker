@@ -1,10 +1,11 @@
 package fuse
 
 import (
-	"k8s.io/api/authentication/v1"
 	"net/http"
 	"os"
 	"strings"
+
+	"k8s.io/api/authentication/v1"
 
 	brokerapi "github.com/aerogear/managed-services-broker/pkg/broker"
 	"github.com/aerogear/managed-services-broker/pkg/clients/openshift"
@@ -98,7 +99,7 @@ func (fd *FuseDeployer) Deploy(instanceID, brokerNamespace string, contextProfil
 	}
 
 	// Fuse custom resource
-	dashboardURL, err := fd.createFuseCustomResource(namespace, brokerNamespace, contextProfile.Namespace, k8sclient)
+	dashboardURL, err := fd.createFuseCustomResource(namespace, brokerNamespace, contextProfile.Namespace, k8sclient, userInfo.Username)
 	if err != nil {
 		glog.Errorln(err)
 		return &brokerapi.CreateServiceInstanceResponse{
@@ -206,13 +207,14 @@ func (fd *FuseDeployer) createFuseOperator(namespace string, osClientFactory *op
 	return nil
 }
 
-func (fd *FuseDeployer) createFuseCustomResource(namespace, brokerNamespace, userNamespace string, k8sclient kubernetes.Interface) (string, error) {
+func (fd *FuseDeployer) createFuseCustomResource(namespace, brokerNamespace, userNamespace string, k8sclient kubernetes.Interface, userID string) (string, error) {
 	fuseClient, _, err := k8sClient.GetResourceClient("syndesis.io/v1alpha1", "Syndesis", namespace)
 	if err != nil {
 		return "", errors.Wrap(err, "failed to create fuse client")
 	}
 
 	fuseObj := getFuseObj(userNamespace)
+	fuseObj.Annotations["syndesis.io/created-by"] = userID
 
 	fuseDashboardURL := fd.getRouteHostname(namespace)
 
