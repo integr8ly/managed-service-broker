@@ -8,8 +8,8 @@ import (
 
 	"k8s.io/api/authentication/v1"
 
-	brokerapi "github.com/aerogear/managed-services-broker/pkg/broker"
-	"github.com/aerogear/managed-services-broker/pkg/clients/openshift"
+	brokerapi "github.com/integr8ly/managed-service-broker/pkg/broker"
+	"github.com/integr8ly/managed-service-broker/pkg/clients/openshift"
 	appsv1 "github.com/openshift/client-go/apps/clientset/versioned/typed/apps/v1"
 	k8sClient "github.com/operator-framework/operator-sdk/pkg/k8sclient"
 	"github.com/operator-framework/operator-sdk/pkg/util/k8sutil"

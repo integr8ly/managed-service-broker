@@ -1,6 +1,6 @@
 TAG = 1.0.1
 DOCKERORG = quay.io/integreatly
-BROKER_IMAGE_NAME = managed-services-broker
+BROKER_IMAGE_NAME = managed-service-broker
 
 .phony: build_and_push
 build_and_push: build_image push
@@ -20,7 +20,7 @@ build_binary:
 
 .phony: run
 run:
-	KUBERNETES_CONFIG=$(HOME)/.kube/config ./tmp/_output/bin/managed-services-broker --port 8080
+	KUBERNETES_CONFIG=$(HOME)/.kube/config ./tmp/_output/bin/managed-service-broker --port 8080
 
 .phony: integration
 integration:

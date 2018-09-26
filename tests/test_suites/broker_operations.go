@@ -2,7 +2,7 @@ package test_suites
 
 import (
 	"fmt"
-	brokerClient "github.com/aerogear/managed-services-broker/tests/broker_client"
+	brokerClient "github.com/integr8ly/managed-service-broker/tests/broker_client"
 	"net/http"
 	"sync"
 	"testing"

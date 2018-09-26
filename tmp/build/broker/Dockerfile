@@ -1,8 +1,8 @@
 FROM alpine:3.6
 
-RUN adduser -D managed-services
+RUN adduser -D managed-service
 USER managed-services
 
-ADD tmp/_output/bin/managed-services-broker /usr/local/bin/
+ADD tmp/_output/bin/managed-service-broker /usr/local/bin/
 
-ENTRYPOINT ["managed-services-broker"]
+ENTRYPOINT ["managed-service-broker"]

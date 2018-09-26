@@ -23,9 +23,9 @@ import (
 
 	"net/http"
 
-	"github.com/aerogear/managed-services-broker/pkg/broker"
-	brokerapi "github.com/aerogear/managed-services-broker/pkg/broker"
-	"github.com/aerogear/managed-services-broker/pkg/clients/openshift"
+	"github.com/integr8ly/managed-service-broker/pkg/broker"
+	brokerapi "github.com/integr8ly/managed-service-broker/pkg/broker"
+	"github.com/integr8ly/managed-service-broker/pkg/clients/openshift"
 	glog "github.com/sirupsen/logrus"
 
 	"k8s.io/client-go/kubernetes"

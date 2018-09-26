@@ -24,9 +24,9 @@ import (
 	"net/http"
 	"time"
 
-	brokerapi "github.com/aerogear/managed-services-broker/pkg/broker"
-	"github.com/aerogear/managed-services-broker/pkg/broker/controller"
-	"github.com/aerogear/managed-services-broker/pkg/broker/server/util"
+	brokerapi "github.com/integr8ly/managed-service-broker/pkg/broker"
+	"github.com/integr8ly/managed-service-broker/pkg/broker/controller"
+	"github.com/integr8ly/managed-service-broker/pkg/broker/server/util"
 
 	"github.com/gorilla/mux"
 	glog "github.com/sirupsen/logrus"

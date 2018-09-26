@@ -1,7 +1,7 @@
 package launcher
 
 import (
-	brokerapi "github.com/aerogear/managed-services-broker/pkg/broker"
+	brokerapi "github.com/integr8ly/managed-service-broker/pkg/broker"
 )
 
 // Launcher plan

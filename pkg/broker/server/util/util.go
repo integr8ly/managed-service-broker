@@ -20,7 +20,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
-	"github.com/aerogear/managed-services-broker/pkg/broker"
+	"github.com/integr8ly/managed-service-broker/pkg/broker"
 	"github.com/pkg/errors"
 	"io/ioutil"
 	"net/http"

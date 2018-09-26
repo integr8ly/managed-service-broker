@@ -1,4 +1,4 @@
-# Managed Services Broker
+# Managed Service Broker
 
 ## Deploying the broker
 
@@ -24,7 +24,7 @@ $ make build_image <DOCKERORG=yourDockerOrg>
 $ make push <DOCKERORG=yourDockerOrg>
 ```
 
-#### Deploy managed-services-broker
+#### Deploy managed-service-broker
 An OpenShift template in the `templates` directory of this repo is used to deploy the broker to a running OpenShift cluster.
 This assumes that the [`svcat` command line tool](https://github.com/kubernetes-incubator/service-catalog/blob/master/docs/install.md) is installed.
 
@@ -48,10 +48,10 @@ $ oc process -f templates/broker.template.yaml \
 $ svcat get brokers
 
 # View the status of the broker
-$ oc describe clusterservicebroker managed-services-broker
+$ oc describe clusterservicebroker managed-service-broker
 ```
 
-__NOTE:__ Che and Launcher do not need to be deployed to deploy the managed-services-broker, `CHE_DASHBOARD_URL` and `LAUNCHER_DASHBOARD_URL` just need to be set to a non-empty value.
+__NOTE:__ Che and Launcher do not need to be deployed to deploy the managed-service-broker, `CHE_DASHBOARD_URL` and `LAUNCHER_DASHBOARD_URL` just need to be set to a non-empty value.
 #### Add syndesis-crd:
 
 ```
@@ -95,7 +95,7 @@ $ oc process -f templates/broker.local.template.yml -p URL=http://192.168.99.1:8
 
 Alternatively, if you already have a running managed service broker in your cluster you can patch the existing resource:
 ```
-$ oc patch clusterservicebroker/managed-services-broker --patch '{"spec":{"url": "http://192.168.99.1:8080"}}'
+$ oc patch clusterservicebroker/managed-service-broker --patch '{"spec":{"url": "http://192.168.99.1:8080"}}'
 ```
 
 #### Build and run the broker locally:
@@ -108,8 +108,8 @@ $ export KUBERNETES_CONFIG=~/.kube/config
 
 ```
 $ make build_binary run
-CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o ./tmp/_output/bin/managed-services-broker ./cmd/broker
-KUBERNETES_CONFIG=/home/mnairn/.kube/config ./tmp/_output/bin/managed-services-broker --port 8080
+CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o ./tmp/_output/bin/managed-service-broker ./cmd/broker
+KUBERNETES_CONFIG=/home/mnairn/.kube/config ./tmp/_output/bin/managed-service-broker --port 8080
 INFO[0000] Catalog()
 INFO[0000] Getting fuse catalog entries
 INFO[0000] Getting launcher catalog entries
@@ -130,16 +130,16 @@ $ svcat get brokers
 
 #### Integration Tests
 
-Setup the managed-services-broker as outlined in [Deploy managed-services-broker](#deploying-the-broker) section.
+Setup the managed-service-broker as outlined in [Deploy managed-service-broker](#deploying-the-broker) section.
 ```bash
-# Set env vars for managed-services-broker url and API token.
+# Set env vars for managed-service-broker url and API token.
 
 # Get API token
 $ oc whoami -t
 EkoH4sIC1aTBWRBNeAzYfkMoMc36W2V3nqPigulKK-s
 
 $ export KUBERNETES_API_TOKEN=EkoH4sIC1aTBWRBNeAzYfkMoMc36W2V3nqPigulKK-s
-$ export BROKER_URL=http://msb-managed-services-broker.127.0.0.1.nip.io // Your managed-services-broker route/URL
+$ export BROKER_URL=http://msb-managed-service-broker.127.0.0.1.nip.io // Your managed-service-broker route/URL
 
 # If KUBERNETES_CONFIG is not already set.
 export KUBERNETES_CONFIG=~/.kube/config
@@ -148,8 +148,8 @@ export KUBERNETES_CONFIG=~/.kube/config
 $ make integration
 ```
 
-__NOTE:__ If running the test against a [locally running managed-services-broker](#local-development-minishift) the permissions used will be of the user you have logged in with using `oc login`.
-To correctly test permissions run against a managed-services-broker running in a cluster.
+__NOTE:__ If running the test against a [locally running managed-service-broker](#local-development-minishift) the permissions used will be of the user you have logged in with using `oc login`.
+To correctly test permissions run against a managed-service-broker running in a cluster.
 
 ## How the broker uses TLS/SSL
 
@@ -162,7 +162,7 @@ kind: Service
 metadata:
   name: msb
   labels:
-    app:  managed-services-broker
+    app:  managed-service-broker
     service: msb
   annotations:
     service.alpha.openshift.io/serving-cert-secret-name: msb-tls
@@ -191,7 +191,7 @@ The CA is specified in the `ClusterServiceBroker` definition, in `spec.caBundle`
 ```yaml
 kind: ClusterServiceBroker
   metadata:
-    name: managed-services-broker
+    name: managed-service-broker
   spec:
     caBundle: LS0tLS1CRUd...
 ```
@@ -203,5 +203,5 @@ $ oc get secret -n kube-service-catalog -o go-template='{{ range .items }}{{ if 
 
 To prompt the catalog to read the broker's catalog end-point, you can use:
 ```
-$ svcat sync broker managed-services-broker
+$ svcat sync broker managed-service-broker
 ```

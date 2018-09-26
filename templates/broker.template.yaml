@@ -8,13 +8,13 @@ objects:
     metadata:
       name: msb
       labels:
-        app:  managed-services-broker
+        app:  managed-service-broker
         service: msb
       annotations:
         service.alpha.openshift.io/serving-cert-secret-name: msb-tls
     spec:
       selector:
-        app:  managed-services-broker
+        app:  managed-service-broker
         service: msb
       ports:
       - protocol: TCP
@@ -26,21 +26,21 @@ objects:
     metadata:
       name: msb
       labels:
-        app:  managed-services-broker
+        app:  managed-service-broker
         service: msb
     spec:
       replicas: 1
       selector:
         matchLabels:
-          app:  managed-services-broker
+          app:  managed-service-broker
       template:
         metadata:
           labels:
-            app:  managed-services-broker
+            app:  managed-service-broker
             service: msb
         spec:
           containers:
-          - name: managed-services-broker
+          - name: managed-service-broker
             image: ${IMAGE_ORG}/${IMAGE_NAME}:${IMAGE_TAG}
             imagePullPolicy: ${IMAGE_PULL_POLICY}
             args:
@@ -81,7 +81,7 @@ objects:
     metadata:
       name: msb
       labels:
-        app: managed-services-broker
+        app: managed-service-broker
         service: msb
     spec:
       to:
@@ -93,14 +93,14 @@ objects:
   - apiVersion: servicecatalog.k8s.io/v1beta1
     kind: ClusterServiceBroker
     metadata:
-      name: managed-services-broker
+      name: managed-service-broker
     spec:
       url: http://msb.${NAMESPACE}.svc
 
   - apiVersion: authorization.openshift.io/v1
     kind: ClusterRole
     metadata:
-      name: managed-services
+      name: managed-service
     rules:
     - apiGroups:
       - ""
@@ -180,20 +180,20 @@ objects:
   - apiVersion: rbac.authorization.k8s.io/v1
     kind: ClusterRoleBinding
     metadata:
-      name: default-cluster-account-managed-services
+      name: default-cluster-account-managed-service
     subjects:
     - kind: ServiceAccount
       name: default
       namespace: ${NAMESPACE}
     roleRef:
       kind: ClusterRole
-      name: managed-services
+      name: managed-service
       apiGroup: rbac.authorization.k8s.io
 
 parameters:
   - name: NAMESPACE
     description: Namespace of the project that is being deployed to
-    value: "managed-services-broker"
+    value: "managed-service-broker"
     required: true
 
   - name: IMAGE_ORG
@@ -202,7 +202,7 @@ parameters:
 
   - name: IMAGE_NAME
     description: Name of the broker image
-    value: "managed-services-broker"
+    value: "managed-service-broker"
 
   - name: IMAGE_TAG
     description: Tag of the broker image

@@ -3,8 +3,8 @@ package test
 import (
 	"flag"
 	"fmt"
-	brokerClient "github.com/aerogear/managed-services-broker/tests/broker_client"
-	suites "github.com/aerogear/managed-services-broker/tests/test_suites"
+	brokerClient "github.com/integr8ly/managed-service-broker/tests/broker_client"
+	suites "github.com/integr8ly/managed-service-broker/tests/test_suites"
 	"os"
 	"testing"
 )
@@ -33,7 +33,7 @@ var (
 )
 
 var (
-	flagBrokerURL = flag.String(BROKER_URL, "", "URL of the manged-services-broker")
+	flagBrokerURL = flag.String(BROKER_URL, "", "URL of the manged-service-broker")
 	flagToken     = flag.String(KUBERNETES_API_TOKEN, "", "Kubernetes token for authorisation")
 )
 
