@@ -17,6 +17,7 @@ import (
 	"github.com/integr8ly/managed-service-broker/pkg/deploys/che"
 	"github.com/integr8ly/managed-service-broker/pkg/deploys/fuse"
 	"github.com/integr8ly/managed-service-broker/pkg/deploys/launcher"
+	"github.com/integr8ly/managed-service-broker/pkg/deploys/threescale"
 	"github.com/operator-framework/operator-sdk/pkg/k8sclient"
 	"github.com/pkg/errors"
 	glog "github.com/sirupsen/logrus"
@@ -83,6 +84,7 @@ func runWithContext(ctx context.Context) error {
 	ctrlr.RegisterDeployer(fuse.NewDeployer("fuse-deployer"))
 	ctrlr.RegisterDeployer(launcher.NewDeployer("launcher-deployer"))
 	ctrlr.RegisterDeployer(che.NewDeployer("che-deployer"))
+	ctrlr.RegisterDeployer(threescale.NewDeployer("3scale-deployer"))
 	ctrlr.Catalog()
 
 	if options.TLSCert == "" && options.TLSKey == "" {
