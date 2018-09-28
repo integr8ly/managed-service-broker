@@ -57,6 +57,8 @@ objects:
               value: ${LAUNCHER_DASHBOARD_URL}
             - name: CHE_DASHBOARD_URL
               value: ${CHE_DASHBOARD_URL}
+            - name: THREESCALE_DASHBOARD_URL
+              value: ${THREESCALE_DASHBOARD_URL}
             ports:
             - containerPort: 8080
             readinessProbe:
@@ -221,6 +223,10 @@ parameters:
 
   - name: CHE_DASHBOARD_URL
     description: Che dasbhoard url
+    required: true
+
+  - name: THREESCALE_DASHBOARD_URL
+    description: 3Scale dasbhoard url
     required: true
 
   - name: CA_BUNDLE
