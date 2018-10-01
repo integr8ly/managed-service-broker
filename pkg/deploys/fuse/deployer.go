@@ -7,7 +7,7 @@ import (
 	"strings"
 
 	"k8s.io/api/authentication/v1"
-
+	"github.com/integr8ly/managed-service-broker/pkg/deploys/fuse/pkg/apis/syndesis/v1alpha1"
 	brokerapi "github.com/integr8ly/managed-service-broker/pkg/broker"
 	"github.com/integr8ly/managed-service-broker/pkg/clients/openshift"
 	appsv1 "github.com/openshift/client-go/apps/clientset/versioned/typed/apps/v1"
@@ -40,67 +40,10 @@ func (fd *FuseDeployer) GetID() string {
 	return fd.id
 }
 
-func (fd *FuseDeployer) Deploy(instanceID, brokerNamespace string, contextProfile brokerapi.ContextProfile, parameters map[string]interface{}, userInfo v1.UserInfo, k8sclient kubernetes.Interface, osClientFactory *openshift.ClientFactory) (*brokerapi.CreateServiceInstanceResponse, error) {
+func (fd *FuseDeployer) Deploy(instanceID, namespace string, contextProfile brokerapi.ContextProfile, userInfo v1.UserInfo, k8sclient kubernetes.Interface, osClientFactory *openshift.ClientFactory) (*brokerapi.CreateServiceInstanceResponse, error) {
 	glog.Infof("Deploying fuse from deployer, id: %s", instanceID)
 
-	// Namespace
-	ns, err := k8sclient.CoreV1().Namespaces().Create(getNamespaceObj("fuse-" + instanceID))
-	if err != nil {
-		glog.Errorf("failed to create fuse namespace: %+v", err)
-		return &brokerapi.CreateServiceInstanceResponse{
-			Code: http.StatusInternalServerError,
-		}, errors.Wrap(err, "failed to create namespace for fuse service")
-	}
-
-	namespace := ns.ObjectMeta.Name
-
-	// ServiceAccount
-	_, err = k8sclient.CoreV1().ServiceAccounts(namespace).Create(getServiceAccountObj())
-	if err != nil {
-		glog.Errorf("failed to create fuse service account: %+v", err)
-		return &brokerapi.CreateServiceInstanceResponse{
-			Code: http.StatusInternalServerError,
-		}, errors.Wrap(err, "failed to create service account for fuse service")
-	}
-
-	//Role
-	_, err = k8sclient.RbacV1beta1().Roles(namespace).Create(getRoleObj())
-	if err != nil {
-		glog.Errorf("failed to create fuse role: %+v", err)
-		return &brokerapi.CreateServiceInstanceResponse{
-			Code: http.StatusInternalServerError,
-		}, errors.Wrap(err, "failed to create role for fuse service")
-	}
-
-	// RoleBindings
-	err = fd.createRoleBindings(namespace, userInfo, k8sclient, osClientFactory)
-	if err != nil {
-		glog.Errorln(err)
-		return &brokerapi.CreateServiceInstanceResponse{
-			Code: http.StatusInternalServerError,
-		}, err
-	}
-
-	// ImageStream
-	err = fd.createImageStream(namespace, osClientFactory)
-	if err != nil {
-		glog.Errorf("failed to create fuse image stream: %+v", err)
-		return &brokerapi.CreateServiceInstanceResponse{
-			Code: http.StatusInternalServerError,
-		}, err
-	}
-
-	// DeploymentConfig
-	err = fd.createFuseOperator(namespace, osClientFactory)
-	if err != nil {
-		glog.Errorln(err)
-		return &brokerapi.CreateServiceInstanceResponse{
-			Code: http.StatusInternalServerError,
-		}, err
-	}
-
-	// Fuse custom resource
-	dashboardURL, err := fd.createFuseCustomResource(namespace, brokerNamespace, contextProfile.Namespace, k8sclient, userInfo.Username, parameters)
+	dashboardURL, err := fd.createFuseCustomResource(instanceID, namespace, contextProfile.Namespace, k8sclient, userInfo.Username)
 	if err != nil {
 		glog.Errorln(err)
 		return &brokerapi.CreateServiceInstanceResponse{
@@ -115,18 +58,20 @@ func (fd *FuseDeployer) Deploy(instanceID, brokerNamespace string, contextProfil
 }
 
 func (fd *FuseDeployer) RemoveDeploy(serviceInstanceId string, namespace string, k8sclient kubernetes.Interface) error {
-	ns := "fuse-" + serviceInstanceId
-	err := k8sclient.CoreV1().Namespaces().Delete(ns, &metav1.DeleteOptions{})
-	if err != nil {
-		glog.Errorf("failed to delete %s namespace: %+v", ns, err)
-		return errors.Wrap(err, fmt.Sprintf("failed to delete namespace %s", ns))
+	sds := v1alpha1.NewSyndesis()
+	sds.Name = serviceInstanceId
+	sds.Namespace = namespace
+	err := sdk.Delete(sds);if err != nil {
+		glog.Errorf("failed to delete service instance: %s with error %+v", serviceInstanceId, err)
+		return errors.Wrap(err, fmt.Sprintf("failed to delete service instance: %s with error %+v", serviceInstanceId, err))
 	}
+
 	return nil
 }
 
-func (fd *FuseDeployer) LastOperation(instanceID string, k8sclient kubernetes.Interface, osclient *openshift.ClientFactory) (*brokerapi.LastOperationResponse, error) {
+
+func (fd *FuseDeployer) LastOperation(instanceID, namespace string, k8sclient kubernetes.Interface, osclient *openshift.ClientFactory) (*brokerapi.LastOperationResponse, error) {
 	glog.Infof("Getting last operation for %s", instanceID)
-	namespace := "fuse-" + instanceID
 	podsToWatch := []string{"syndesis-oauthproxy", "syndesis-server", "syndesis-ui"}
 
 	dcClient, err := osclient.AppsClient()
@@ -154,87 +99,16 @@ func (fd *FuseDeployer) LastOperation(instanceID string, k8sclient kubernetes.In
 	}, nil
 }
 
-func (fd *FuseDeployer) createRoleBindings(namespace string, userInfo v1.UserInfo, k8sclient kubernetes.Interface, osClientFactory *openshift.ClientFactory) error {
-	for _, sysRoleBinding := range getSystemRoleBindings(namespace) {
-		_, err := k8sclient.RbacV1beta1().RoleBindings(namespace).Create(&sysRoleBinding)
-		if err != nil && !strings.Contains(err.Error(), "already exists") {
-			return errors.Wrapf(err, "failed to create rolebinding for %s", &sysRoleBinding.ObjectMeta.Name)
-		}
-	}
-
-	_, err := k8sclient.RbacV1beta1().RoleBindings(namespace).Create(getInstallRoleBindingObj())
-	if err != nil {
-		return errors.Wrap(err, "failed to create install role binding for fuse service")
-	}
-
-	authClient, err := osClientFactory.AuthClient()
-	if err != nil {
-		return errors.Wrap(err, "failed to create an openshift authorization client")
-	}
-
-	_, err = authClient.RoleBindings(namespace).Create(getViewRoleBindingObj())
-	if err != nil {
-		return errors.Wrap(err, "failed to create view role binding for fuse service")
-	}
-
-	_, err = authClient.RoleBindings(namespace).Create(getEditRoleBindingObj())
-	if err != nil {
-		return errors.Wrap(err, "failed to create edit role binding for fuse service")
-	}
-
-	_, err = authClient.RoleBindings(namespace).Create(getUserViewRoleBindingObj(namespace, userInfo.Username))
-	if err != nil {
-		return errors.Wrap(err, "failed to create user view role binding for fuse service")
-	}
-
-	return nil
-}
-
-func (fd *FuseDeployer) createImageStream(namespace string, osClientFactory *openshift.ClientFactory) error {
-	imageClient, err := osClientFactory.ImageStreamClient()
-	if err != nil {
-		return errors.Wrap(err, "failed to create an openshift image stream client")
-	}
-
-	for _, imgStream := range getFuseOnlineImageStreamsObj() {
-		_, err = imageClient.ImageStreams(namespace).Create(&imgStream)
-		if err != nil {
-			return errors.Wrap(err, "failed to create "+imgStream.ObjectMeta.Name+" image stream for fuse service")
-		}
-	}
-
-	return nil
-}
-
-func (fd *FuseDeployer) createFuseOperator(namespace string, osClientFactory *openshift.ClientFactory) error {
-	dcClient, err := osClientFactory.AppsClient()
-	if err != nil {
-		return errors.Wrap(err, "failed to create an openshift deployment config client")
-	}
-
-	_, err = dcClient.DeploymentConfigs(namespace).Create(getDeploymentConfigObj())
-	if err != nil {
-		return errors.Wrap(err, "failed to create deployment config for fuse service")
-	}
-
-	return nil
-}
-
-func (fd *FuseDeployer) createFuseCustomResource(namespace, brokerNamespace, userNamespace string, k8sclient kubernetes.Interface, userID string, parameters map[string]interface{}) (string, error) {
-	fuseClient, _, err := k8sClient.GetResourceClient("syndesis.io/v1alpha1", "Syndesis", namespace)
+func (fd *FuseDeployer) createFuseCustomResource(instanceID, managedNamespace, userNamespace string, k8sclient kubernetes.Interface, userID string) (string, error) {
+	fuseClient, _, err := k8sClient.GetResourceClient("syndesis.io/v1alpha1", "Syndesis", managedNamespace)
 	if err != nil {
 		return "", errors.Wrap(err, "failed to create fuse client")
 	}
 
-	integrationsLimit := 0
-	if parameters["limit"] != nil {
-		integrationsLimit = int(parameters["limit"].(float64))
-	}
-
-	fuseObj := getFuseObj(namespace, userNamespace, integrationsLimit)
+	fuseObj := getFuseObj(instanceID, userNamespace)
 	fuseObj.Annotations["syndesis.io/created-by"] = userID
 
-	fuseDashboardURL := fd.getRouteHostname(namespace)
+	fuseDashboardURL := fd.getRouteHostname(managedNamespace)
 
 	fuseObj.Spec.RouteHostName = fuseDashboardURL
 	_, err = fuseClient.Create(k8sutil.UnstructuredFromRuntimeObject(fuseObj))

@@ -18,15 +18,15 @@ package controller
 
 import (
 	"fmt"
-	"sync"
-
 	"k8s.io/api/authentication/v1"
+	"sync"
 
 	"net/http"
 
 	"github.com/integr8ly/managed-service-broker/pkg/broker"
 	brokerapi "github.com/integr8ly/managed-service-broker/pkg/broker"
 	"github.com/integr8ly/managed-service-broker/pkg/clients/openshift"
+	"github.com/operator-framework/operator-sdk/pkg/sdk"
 	glog "github.com/sirupsen/logrus"
 
 	"k8s.io/client-go/kubernetes"
@@ -35,8 +35,8 @@ import (
 //Deployer deploys a service from this broker
 type Deployer interface {
 	GetCatalogEntries() []*brokerapi.Service
-	Deploy(id string, brokerNs string, contextProfile brokerapi.ContextProfile, parameters map[string]interface{}, user v1.UserInfo, k8sclient kubernetes.Interface, osclient *openshift.ClientFactory) (*brokerapi.CreateServiceInstanceResponse, error)
-	LastOperation(instanceID string, k8sclient kubernetes.Interface, osclient *openshift.ClientFactory) (*brokerapi.LastOperationResponse, error)
+	Deploy(id string, managedNamespace string, contextProfile brokerapi.ContextProfile, user v1.UserInfo, k8sclient kubernetes.Interface, osclient *openshift.ClientFactory) (*brokerapi.CreateServiceInstanceResponse, error)
+	LastOperation(instanceID, namespace string, k8sclient kubernetes.Interface, osclient *openshift.ClientFactory) (*brokerapi.LastOperationResponse, error)
 	GetID() string
 	IsForService(serviceID string) bool
 	RemoveDeploy(serviceInstanceId string, namespace string, k8sclient kubernetes.Interface) error
@@ -114,9 +114,22 @@ func (c *userProvidedController) CreateServiceInstance(
 	req *brokerapi.CreateServiceInstanceRequest,
 ) (*brokerapi.CreateServiceInstanceResponse, error) {
 	glog.Infof("Create service instance: %s, user: %s", req.ServiceID, req.OriginatingUserInfo.Username)
+
+	userNS := req.ContextProfile.Namespace
+	msns, err := getMangedServiceNamespaceForUserNamespace(c.brokerNS, userNS);if err != nil {
+		glog.Errorf(fmt.Sprintf("failed to get ManagedServiceNamespace for user namespace: %s when provisioning service %s", userNS, instanceID), err)
+		return &brokerapi.CreateServiceInstanceResponse{Code: http.StatusInternalServerError}, err
+	}
+
+	msns.Annotations[getInstanceAnnotation(instanceID)] = userNS
+	err = sdk.Update(msns);if err != nil {
+		glog.Errorf("Error updating ManagedServiceNamespace", err)
+		return &brokerapi.CreateServiceInstanceResponse{Code: http.StatusInternalServerError}, err
+	}
+
 	for _, deployer := range c.registeredDeployers {
 		if deployer.IsForService(req.ServiceID) {
-			return deployer.Deploy(instanceID, c.brokerNS, req.ContextProfile, req.Parameters, req.OriginatingUserInfo, c.k8sclient, c.osClientFactory)
+			return deployer.Deploy(instanceID, msns.Spec.ManagedNamespace, req.ContextProfile, req.OriginatingUserInfo, c.k8sclient, c.osClientFactory)
 		}
 	}
 
@@ -130,9 +143,15 @@ func (c *userProvidedController) GetServiceInstanceLastOperation(
 	operation string,
 ) (*brokerapi.LastOperationResponse, error) {
 	glog.Info("GetServiceInstanceLastOperation()", "operation "+operation, serviceID)
+
+	msns, err := getMangedServiceNamespaceForInstance(c.brokerNS, instanceID);if err != nil {
+		glog.Errorf(fmt.Sprintf("failed to get ManagedServiceNamespace for instance: %s", instanceID), err)
+		return &brokerapi.LastOperationResponse{State: brokerapi.StateFailed}, err
+	}
+
 	for _, deployer := range c.registeredDeployers {
 		if deployer.IsForService(serviceID) {
-			return deployer.LastOperation(instanceID, c.k8sclient, c.osClientFactory)
+			return deployer.LastOperation(instanceID, msns.Spec.ManagedNamespace, c.k8sclient, c.osClientFactory)
 		}
 	}
 
@@ -147,11 +166,15 @@ func (c *userProvidedController) RemoveServiceInstance(
 ) (*brokerapi.DeleteServiceInstanceResponse, error) {
 	glog.Info("RemoveServiceInstance()", instanceID)
 
+	msns, err := getMangedServiceNamespaceForInstance(c.brokerNS, instanceID);if err != nil {
+		glog.Errorf(fmt.Sprintf("failed to get ManagedServiceNamespace for instance: %s", instanceID), err)
+		return &brokerapi.DeleteServiceInstanceResponse{}, err
+	}
+
 	for _, deployer := range c.registeredDeployers {
 		if deployer.IsForService(serviceID) {
 			glog.Info("RemoveDeploy()", instanceID)
-			err := deployer.RemoveDeploy(instanceID, c.brokerNS, c.k8sclient)
-			if err != nil {
+			err := deployer.RemoveDeploy(instanceID, msns.Spec.ManagedNamespace, c.k8sclient);if err != nil {
 				glog.Errorf("failed to remove service instance", err)
 				return &brokerapi.DeleteServiceInstanceResponse{}, err
 			}

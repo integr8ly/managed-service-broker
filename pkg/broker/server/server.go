@@ -155,7 +155,7 @@ func (s *server) createServiceInstance(w http.ResponseWriter, r *http.Request) {
 	q := r.URL.Query()
 	async := q.Get("accepts_incomplete") == "true"
 	if async != true {
-		util.WriteResponse(w, http.StatusUnprocessableEntity, brokerapi.NewUnprocessableEntityError())
+		util.WriteResponse(w, http.StatusUnprocessableEntity, brokerapi.NewAsyncUnprocessableError())
 		return
 	}
 
@@ -219,7 +219,7 @@ func (s *server) removeServiceInstance(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if async != true {
-		util.WriteResponse(w, http.StatusUnprocessableEntity, brokerapi.NewUnprocessableEntityError())
+		util.WriteResponse(w, http.StatusUnprocessableEntity, brokerapi.NewAsyncUnprocessableError())
 		return
 	}
 

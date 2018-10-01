@@ -113,6 +113,11 @@ objects:
       - syndesises/finalizers
       verbs: ["create", "delete", "deletecollection", "get", "list", "update", "watch"]
     - apiGroups:
+      - integreatly.org
+      resources:
+      - managedservicenamespaces
+      verbs: ["list", "update"]
+    - apiGroups:
       - ""
       resources:
       - configmaps

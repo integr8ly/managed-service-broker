@@ -1,10 +1,9 @@
 package launcher
 
 import (
+	"k8s.io/api/authentication/v1"
 	"net/http"
 	"os"
-
-	"k8s.io/api/authentication/v1"
 
 	brokerapi "github.com/integr8ly/managed-service-broker/pkg/broker"
 	"github.com/integr8ly/managed-service-broker/pkg/clients/openshift"
@@ -33,7 +32,7 @@ func (ld *LauncherDeployer) GetID() string {
 	return ld.id
 }
 
-func (ld *LauncherDeployer) Deploy(instanceID, brokerNamespace string, contextProfile brokerapi.ContextProfile, parameters map[string]interface{}, userInfo v1.UserInfo, k8sclient kubernetes.Interface, osClientFactory *openshift.ClientFactory) (*brokerapi.CreateServiceInstanceResponse, error) {
+func (ld *LauncherDeployer) Deploy(instanceID, managedNamespace string, contextProfile brokerapi.ContextProfile, userInfo v1.UserInfo, k8sclient kubernetes.Interface, osClientFactory *openshift.ClientFactory) (*brokerapi.CreateServiceInstanceResponse, error) {
 	glog.Infof("Deploying launcher from deployer, id: %s", instanceID)
 
 	dashboardUrl := os.Getenv("LAUNCHER_DASHBOARD_URL")
@@ -48,7 +47,7 @@ func (ld *LauncherDeployer) RemoveDeploy(serviceInstanceId string, namespace str
 	return nil
 }
 
-func (ld *LauncherDeployer) LastOperation(instanceID string, k8sclient kubernetes.Interface, osclient *openshift.ClientFactory) (*brokerapi.LastOperationResponse, error) {
+func (ld *LauncherDeployer) LastOperation(instanceID, namespace string, k8sclient kubernetes.Interface, osclient *openshift.ClientFactory) (*brokerapi.LastOperationResponse, error) {
 	glog.Infof("Getting last operation for %s", instanceID)
 
 	return &brokerapi.LastOperationResponse{

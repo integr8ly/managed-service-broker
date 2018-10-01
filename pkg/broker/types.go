@@ -61,6 +61,11 @@ type CreateServiceInstanceRequest struct {
 	OriginatingUserInfo v1.UserInfo            `json:"user,omitempty"`
 }
 
+type CreateServiceInstanceRequestContext struct {
+	Platform  string `json:"platform"`
+	Namespace string `json:"namespace"`
+}
+
 // ContextProfilePlatformKubernetes is a constant to send when the
 // client is representing a kubernetes style ecosystem.
 const ContextProfilePlatformKubernetes string = "kubernetes"
@@ -198,7 +203,7 @@ type ServiceBrokerError struct {
 	Description  string `json:"description,omitempty"`
 }
 
-func NewUnprocessableEntityError() *ServiceBrokerError{
+func NewAsyncUnprocessableError() *ServiceBrokerError{
 	return &ServiceBrokerError{
 		Error:       "AsyncRequired",
 		Description: "This Service Plan requires client support for asynchronous service operations.",
