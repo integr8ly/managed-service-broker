@@ -124,7 +124,6 @@ func (fd *FuseDeployer) RemoveDeploy(serviceInstanceId string, namespace string,
 	return nil
 }
 
-
 func (fd *FuseDeployer) LastOperation(instanceID string, k8sclient kubernetes.Interface, osclient *openshift.ClientFactory) (*brokerapi.LastOperationResponse, error) {
 	glog.Infof("Getting last operation for %s", instanceID)
 	namespace := "fuse-" + instanceID
@@ -197,9 +196,11 @@ func (fd *FuseDeployer) createImageStream(namespace string, osClientFactory *ope
 		return errors.Wrap(err, "failed to create an openshift image stream client")
 	}
 
-	_, err = imageClient.ImageStreams(namespace).Create(getImageStreamObj())
-	if err != nil {
-		return errors.Wrap(err, "failed to create image stream for fuse service")
+	for _, imgStream := range getFuseOnlineImageStreamsObj() {
+		_, err = imageClient.ImageStreams(namespace).Create(&imgStream)
+		if err != nil {
+			return errors.Wrap(err, "failed to create "+imgStream.ObjectMeta.Name+" image stream for fuse service")
+		}
 	}
 
 	return nil
@@ -225,7 +226,7 @@ func (fd *FuseDeployer) createFuseCustomResource(namespace, brokerNamespace, use
 		return "", errors.Wrap(err, "failed to create fuse client")
 	}
 
-	fuseObj := getFuseObj(userNamespace)
+	fuseObj := getFuseObj(namespace, userNamespace)
 	fuseObj.Annotations["syndesis.io/created-by"] = userID
 
 	fuseDashboardURL := fd.getRouteHostname(namespace)
