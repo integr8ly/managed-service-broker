@@ -42,6 +42,7 @@ $ oc process -f templates/broker.template.yaml \
  -p IMAGE_ORG=<yourDockerOrg> \
  -p CHE_DASHBOARD_URL=<cheDashBoardUrl> \
  -p LAUNCHER_DASHBOARD_URL=<launcherDashBoardUrl> \
+ -p THREESCALE_DASHBOARD_URL=<3scaleDashBoardUrl> \
  | oc create -f -
 
 # Verify that the broker has been registered correctly and STATUS is 'Ready'
