@@ -34,7 +34,18 @@ func getCatalogServicesObj() []*brokerapi.Service {
 							Create: &brokerapi.RequestResponseSchema{},
 						},
 						ServiceInstance: &brokerapi.ServiceInstanceSchema{
-							Create: &brokerapi.InputParametersSchema{},
+							Create: &brokerapi.InputParametersSchema{
+								Parameters: map[string]interface{}{
+									"$schema": "http://json-schema.org/draft-04/schema#",
+									"type":    "object",
+									"properties": map[string]interface{}{
+										"limit": map[string]interface{}{
+											"description": "Fuse integrations limit",
+											"type":        "number",
+										},
+									},
+								},
+							},
 						},
 					},
 				},
@@ -537,9 +548,7 @@ func getSystemRoleBindings(namespace string) []rbacv1beta1.RoleBinding {
 }
 
 // Fuse Custom Resource
-func getFuseObj(namespace, userNamespace string) *v1alpha1.Syndesis {
-	limit := 0
-
+func getFuseObj(namespace, userNamespace string, integrationsLimit int) *v1alpha1.Syndesis {
 	return &v1alpha1.Syndesis{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "Syndesis",
@@ -552,7 +561,7 @@ func getFuseObj(namespace, userNamespace string) *v1alpha1.Syndesis {
 		Spec: v1alpha1.SyndesisSpec{
 			ImageStreamNamespace: namespace,
 			Integration: v1alpha1.IntegrationSpec{
-				Limit: &limit,
+				Limit: &integrationsLimit,
 			},
 			Components: v1alpha1.ComponentsSpec{
 				Db:         v1alpha1.DbConfiguration{},

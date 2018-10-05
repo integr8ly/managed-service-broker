@@ -32,7 +32,7 @@ func (fd *ThreeScaleDeployer) GetID() string {
 	return fd.id
 }
 
-func (fd *ThreeScaleDeployer) Deploy(instanceID, brokerNamespace string, contextProfile brokerapi.ContextProfile, userInfo v1.UserInfo, k8sclient kubernetes.Interface, osClientFactory *openshift.ClientFactory) (*brokerapi.CreateServiceInstanceResponse, error) {
+func (fd *ThreeScaleDeployer) Deploy(instanceID, brokerNamespace string, contextProfile brokerapi.ContextProfile, parameters map[string]interface{}, userInfo v1.UserInfo, k8sclient kubernetes.Interface, osClientFactory *openshift.ClientFactory) (*brokerapi.CreateServiceInstanceResponse, error) {
 	glog.Infof("Deploying 3scale from deployer, id: %s", instanceID)
 
 	dashboardUrl := os.Getenv("THREESCALE_DASHBOARD_URL")

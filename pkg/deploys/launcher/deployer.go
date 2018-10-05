@@ -1,9 +1,10 @@
 package launcher
 
 import (
-	"k8s.io/api/authentication/v1"
 	"net/http"
 	"os"
+
+	"k8s.io/api/authentication/v1"
 
 	brokerapi "github.com/integr8ly/managed-service-broker/pkg/broker"
 	"github.com/integr8ly/managed-service-broker/pkg/clients/openshift"
@@ -32,7 +33,7 @@ func (ld *LauncherDeployer) GetID() string {
 	return ld.id
 }
 
-func (ld *LauncherDeployer) Deploy(instanceID, brokerNamespace string, contextProfile brokerapi.ContextProfile, userInfo v1.UserInfo, k8sclient kubernetes.Interface, osClientFactory *openshift.ClientFactory) (*brokerapi.CreateServiceInstanceResponse, error) {
+func (ld *LauncherDeployer) Deploy(instanceID, brokerNamespace string, contextProfile brokerapi.ContextProfile, parameters map[string]interface{}, userInfo v1.UserInfo, k8sclient kubernetes.Interface, osClientFactory *openshift.ClientFactory) (*brokerapi.CreateServiceInstanceResponse, error) {
 	glog.Infof("Deploying launcher from deployer, id: %s", instanceID)
 
 	dashboardUrl := os.Getenv("LAUNCHER_DASHBOARD_URL")

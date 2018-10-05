@@ -1,9 +1,10 @@
 package che
 
 import (
-	"k8s.io/api/authentication/v1"
 	"net/http"
 	"os"
+
+	"k8s.io/api/authentication/v1"
 
 	brokerapi "github.com/integr8ly/managed-service-broker/pkg/broker"
 	"github.com/integr8ly/managed-service-broker/pkg/clients/openshift"
@@ -32,7 +33,7 @@ func (cd *CheDeployer) GetID() string {
 	return cd.id
 }
 
-func (cd *CheDeployer) Deploy(instanceID, brokerNamespace string, contextProfile brokerapi.ContextProfile, userInfo v1.UserInfo, k8sclient kubernetes.Interface, osClientFactory *openshift.ClientFactory) (*brokerapi.CreateServiceInstanceResponse, error) {
+func (cd *CheDeployer) Deploy(instanceID, brokerNamespace string, contextProfile brokerapi.ContextProfile, parameters map[string]interface{}, userInfo v1.UserInfo, k8sclient kubernetes.Interface, osClientFactory *openshift.ClientFactory) (*brokerapi.CreateServiceInstanceResponse, error) {
 	glog.Infof("Deploying che from deployer, id: %s", instanceID)
 
 	dashboardUrl := os.Getenv("CHE_DASHBOARD_URL")
