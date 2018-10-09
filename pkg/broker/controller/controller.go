@@ -18,8 +18,9 @@ package controller
 
 import (
 	"fmt"
-	"k8s.io/api/authentication/v1"
 	"sync"
+
+	"k8s.io/api/authentication/v1"
 
 	"net/http"
 
@@ -34,7 +35,7 @@ import (
 //Deployer deploys a service from this broker
 type Deployer interface {
 	GetCatalogEntries() []*brokerapi.Service
-	Deploy(id string, brokerNs string, contextProfile brokerapi.ContextProfile, user v1.UserInfo, k8sclient kubernetes.Interface, osclient *openshift.ClientFactory) (*brokerapi.CreateServiceInstanceResponse, error)
+	Deploy(id string, brokerNs string, contextProfile brokerapi.ContextProfile, parameters map[string]interface{}, user v1.UserInfo, k8sclient kubernetes.Interface, osclient *openshift.ClientFactory) (*brokerapi.CreateServiceInstanceResponse, error)
 	LastOperation(instanceID string, k8sclient kubernetes.Interface, osclient *openshift.ClientFactory) (*brokerapi.LastOperationResponse, error)
 	GetID() string
 	IsForService(serviceID string) bool
@@ -115,7 +116,7 @@ func (c *userProvidedController) CreateServiceInstance(
 	glog.Infof("Create service instance: %s, user: %s", req.ServiceID, req.OriginatingUserInfo.Username)
 	for _, deployer := range c.registeredDeployers {
 		if deployer.IsForService(req.ServiceID) {
-			return deployer.Deploy(instanceID, c.brokerNS, req.ContextProfile, req.OriginatingUserInfo, c.k8sclient, c.osClientFactory)
+			return deployer.Deploy(instanceID, c.brokerNS, req.ContextProfile, req.Parameters, req.OriginatingUserInfo, c.k8sclient, c.osClientFactory)
 		}
 	}
 
@@ -149,7 +150,8 @@ func (c *userProvidedController) RemoveServiceInstance(
 	for _, deployer := range c.registeredDeployers {
 		if deployer.IsForService(serviceID) {
 			glog.Info("RemoveDeploy()", instanceID)
-			err := deployer.RemoveDeploy(instanceID, c.brokerNS, c.k8sclient); if err != nil {
+			err := deployer.RemoveDeploy(instanceID, c.brokerNS, c.k8sclient)
+			if err != nil {
 				glog.Errorf("failed to remove service instance", err)
 				return &brokerapi.DeleteServiceInstanceResponse{}, err
 			}
