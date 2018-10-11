@@ -32,7 +32,7 @@ func (ld *LauncherDeployer) GetID() string {
 	return ld.id
 }
 
-func (ld *LauncherDeployer) Deploy(instanceID, managedNamespace string, contextProfile brokerapi.ContextProfile, userInfo v1.UserInfo, k8sclient kubernetes.Interface, osClientFactory *openshift.ClientFactory) (*brokerapi.CreateServiceInstanceResponse, error) {
+func (ld *LauncherDeployer) Deploy(instanceID, managedNamespace string, contextProfile brokerapi.ContextProfile, parameters map[string]interface{}, userInfo v1.UserInfo, k8sclient kubernetes.Interface, osClientFactory *openshift.ClientFactory) (*brokerapi.CreateServiceInstanceResponse, error) {
 	glog.Infof("Deploying launcher from deployer, id: %s", instanceID)
 
 	dashboardUrl := os.Getenv("LAUNCHER_DASHBOARD_URL")

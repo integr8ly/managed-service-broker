@@ -3,13 +3,9 @@ package fuse
 import (
 	brokerapi "github.com/integr8ly/managed-service-broker/pkg/broker"
 	"github.com/integr8ly/managed-service-broker/pkg/deploys/fuse/pkg/apis/syndesis/v1alpha1"
-	appsv1 "github.com/openshift/api/apps/v1"
-	authv1 "github.com/openshift/api/authorization/v1"
-	imagev1 "github.com/openshift/api/image/v1"
-	corev1 "k8s.io/api/core/v1"
-	rbacv1beta1 "k8s.io/api/rbac/v1beta1"
-        "k8s.io/apimachinery/pkg/api/resource"
+	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	corev1 "k8s.io/api/core/v1"
 )
 
 // Fuse plan
@@ -67,12 +63,6 @@ func getFuseObj(instanceID, userNamespace string) *v1alpha1.Syndesis {
 			Kind:       "Syndesis",
 			APIVersion: "syndesis.io/v1alpha1",
 		},
-	}
-}
-
-// Fuse operator role
-func getRoleObj() *rbacv1beta1.Role {
-	return &rbacv1beta1.Role{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:        instanceID,
 			Annotations: map[string]string{},
@@ -118,10 +108,6 @@ func getRoleObj() *rbacv1beta1.Role {
 								"memory": *resource.NewQuantity(800*1024*1024, resource.BinarySI),
 							},
 						},
-						ImportPolicy: imagev1.TagImportPolicy{
-							Scheduled: true,
-						},
-						Name: "1.4",
 					},
 				},
 				Meta: v1alpha1.MetaConfiguration{

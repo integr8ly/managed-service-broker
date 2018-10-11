@@ -32,7 +32,7 @@ func (cd *CheDeployer) GetID() string {
 	return cd.id
 }
 
-func (cd *CheDeployer) Deploy(instanceID, managedNamespace string, contextProfile brokerapi.ContextProfile, userInfo v1.UserInfo, k8sclient kubernetes.Interface, osClientFactory *openshift.ClientFactory) (*brokerapi.CreateServiceInstanceResponse, error) {
+func (cd *CheDeployer) Deploy(instanceID, managedNamespace string, contextProfile brokerapi.ContextProfile, parameters map[string]interface{}, userInfo v1.UserInfo, k8sclient kubernetes.Interface, osClientFactory *openshift.ClientFactory) (*brokerapi.CreateServiceInstanceResponse, error) {
 	glog.Infof("Deploying che from deployer, id: %s", instanceID)
 
 	dashboardUrl := os.Getenv("CHE_DASHBOARD_URL")

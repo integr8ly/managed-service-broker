@@ -35,7 +35,7 @@ import (
 //Deployer deploys a service from this broker
 type Deployer interface {
 	GetCatalogEntries() []*brokerapi.Service
-	Deploy(id string, managedNamespace string, contextProfile brokerapi.ContextProfile, user v1.UserInfo, k8sclient kubernetes.Interface, osclient *openshift.ClientFactory) (*brokerapi.CreateServiceInstanceResponse, error)
+	Deploy(id string, managedNamespace string, contextProfile brokerapi.ContextProfile, parameters map[string]interface{}, user v1.UserInfo, k8sclient kubernetes.Interface, osclient *openshift.ClientFactory) (*brokerapi.CreateServiceInstanceResponse, error)
 	LastOperation(instanceID, namespace string, k8sclient kubernetes.Interface, osclient *openshift.ClientFactory) (*brokerapi.LastOperationResponse, error)
 	GetID() string
 	IsForService(serviceID string) bool
@@ -129,7 +129,7 @@ func (c *userProvidedController) CreateServiceInstance(
 
 	for _, deployer := range c.registeredDeployers {
 		if deployer.IsForService(req.ServiceID) {
-			return deployer.Deploy(instanceID, msns.Spec.ManagedNamespace, req.ContextProfile, req.OriginatingUserInfo, c.k8sclient, c.osClientFactory)
+			return deployer.Deploy(instanceID, msns.Spec.ManagedNamespace, req.ContextProfile, req.Parameters, req.OriginatingUserInfo, c.k8sclient, c.osClientFactory)
 		}
 	}
 

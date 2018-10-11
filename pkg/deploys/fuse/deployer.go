@@ -2,9 +2,9 @@ package fuse
 
 import (
 	"fmt"
+	"github.com/operator-framework/operator-sdk/pkg/sdk"
 	"net/http"
 	"os"
-	"strings"
 
 	"k8s.io/api/authentication/v1"
 	"github.com/integr8ly/managed-service-broker/pkg/deploys/fuse/pkg/apis/syndesis/v1alpha1"
@@ -40,10 +40,10 @@ func (fd *FuseDeployer) GetID() string {
 	return fd.id
 }
 
-func (fd *FuseDeployer) Deploy(instanceID, namespace string, contextProfile brokerapi.ContextProfile, userInfo v1.UserInfo, k8sclient kubernetes.Interface, osClientFactory *openshift.ClientFactory) (*brokerapi.CreateServiceInstanceResponse, error) {
+func (fd *FuseDeployer) Deploy(instanceID, namespace string, contextProfile brokerapi.ContextProfile, parameters map[string]interface{}, userInfo v1.UserInfo, k8sclient kubernetes.Interface, osClientFactory *openshift.ClientFactory) (*brokerapi.CreateServiceInstanceResponse, error) {
 	glog.Infof("Deploying fuse from deployer, id: %s", instanceID)
 
-	dashboardURL, err := fd.createFuseCustomResource(instanceID, namespace, contextProfile.Namespace, k8sclient, userInfo.Username)
+	dashboardURL, err := fd.createFuseCustomResource(instanceID, namespace, contextProfile.Namespace, k8sclient, userInfo.Username, parameters)
 	if err != nil {
 		glog.Errorln(err)
 		return &brokerapi.CreateServiceInstanceResponse{
@@ -99,7 +99,7 @@ func (fd *FuseDeployer) LastOperation(instanceID, namespace string, k8sclient ku
 	}, nil
 }
 
-func (fd *FuseDeployer) createFuseCustomResource(instanceID, managedNamespace, userNamespace string, k8sclient kubernetes.Interface, userID string) (string, error) {
+func (fd *FuseDeployer) createFuseCustomResource(instanceID, managedNamespace, userNamespace string, k8sclient kubernetes.Interface, userID string, parameters map[string]interface{}) (string, error) {
 	fuseClient, _, err := k8sClient.GetResourceClient("syndesis.io/v1alpha1", "Syndesis", managedNamespace)
 	if err != nil {
 		return "", errors.Wrap(err, "failed to create fuse client")
