@@ -71,8 +71,6 @@ func runWithContext(ctx context.Context) error {
 		return nil
 	}
 
-	namespace := os.Getenv("POD_NAMESPACE")
-
 	addr := ":" + strconv.Itoa(options.Port)
 	var err error
 
@@ -88,25 +86,24 @@ func runWithContext(ctx context.Context) error {
 	k8sClient := k8sclient.GetKubeClient()
 	osClient := openshift.NewClientFactory(cfg)
 
-	ctrlr := controller.CreateController(namespace, k8sClient, osClient)
-
-
-
+	deployers := []controller.Deployer{}
 	if shouldRegisterService( fuseOnlineServiceName) {
-		ctrlr.RegisterDeployer(fuse.NewDeployer("fuse-deployer"))
+		deployers = append(deployers, fuse.NewDeployer(k8sClient, osClient))
 	}
 	if shouldRegisterService(launcherServiceName) {
-		ctrlr.RegisterDeployer(launcher.NewDeployer("launcher-deployer"))
+		deployers = append(deployers, launcher.NewDeployer())
 	}
 	if shouldRegisterService( cheServiceName) {
-		ctrlr.RegisterDeployer(che.NewDeployer("che-deployer"))
+		deployers = append(deployers, che.NewDeployer())
 	}
 	if shouldRegisterService( threeScaleServiceName) {
-		ctrlr.RegisterDeployer(threescale.NewDeployer("3scale-deployer"))
+		deployers = append(deployers, threescale.NewDeployer())
 	}
 	if shouldRegisterService( apicurioServiceName) {
-		ctrlr.RegisterDeployer(apicurio.NewDeployer("apicurio-deployer"))
+		deployers = append(deployers, apicurio.NewDeployer())
 	}
+	ctrlr := controller.CreateController(deployers)
+
 	ctrlr.Catalog()
 
 	if options.TLSCert == "" && options.TLSKey == "" {
