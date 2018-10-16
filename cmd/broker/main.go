@@ -62,29 +62,16 @@ func runWithContext(ctx context.Context) error {
 		return nil
 	}
 
-	namespace := os.Getenv("POD_NAMESPACE")
-
 	addr := ":" + strconv.Itoa(options.Port)
 	var err error
 
-	// Instantiate loader for kubeconfig file.
-	kubeconfig := clientcmd.NewNonInteractiveDeferredLoadingClientConfig(
-		clientcmd.NewDefaultClientConfigLoadingRules(),
-		&clientcmd.ConfigOverrides{},
-	)
-	cfg, err := kubeconfig.ClientConfig()
-	if err != nil {
-		return errors.Wrap(err, "error creating kube client config")
-	}
-	k8sClient := k8sclient.GetKubeClient()
-	osClient := openshift.NewClientFactory(cfg)
+	ctrlr := controller.CreateController([]controller.Deployer{
+		fuse.NewDeployer(),
+		launcher.NewDeployer(),
+		che.NewDeployer(),
+		threescale.NewDeployer(),
+	})
 
-	ctrlr := controller.CreateController(namespace, k8sClient, osClient)
-
-	ctrlr.RegisterDeployer(fuse.NewDeployer("fuse-deployer"))
-	ctrlr.RegisterDeployer(launcher.NewDeployer("launcher-deployer"))
-	ctrlr.RegisterDeployer(che.NewDeployer("che-deployer"))
-	ctrlr.RegisterDeployer(threescale.NewDeployer("3scale-deployer"))
 	ctrlr.Catalog()
 
 	if options.TLSCert == "" && options.TLSKey == "" {

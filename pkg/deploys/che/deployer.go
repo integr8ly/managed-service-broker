@@ -4,24 +4,14 @@ import (
 	"net/http"
 	"os"
 
-	"k8s.io/api/authentication/v1"
-
 	brokerapi "github.com/integr8ly/managed-service-broker/pkg/broker"
-	"github.com/integr8ly/managed-service-broker/pkg/clients/openshift"
 	glog "github.com/sirupsen/logrus"
-	"k8s.io/client-go/kubernetes"
 )
 
-type CheDeployer struct {
-	id string
-}
+type CheDeployer struct {}
 
-func NewDeployer(id string) *CheDeployer {
-	return &CheDeployer{id: id}
-}
-
-func (cd *CheDeployer) IsForService(serviceID string) bool {
-	return serviceID == "che-service-id"
+func NewDeployer() *CheDeployer {
+	return &CheDeployer{}
 }
 
 func (cd *CheDeployer) GetCatalogEntries() []*brokerapi.Service {
@@ -29,27 +19,23 @@ func (cd *CheDeployer) GetCatalogEntries() []*brokerapi.Service {
 	return getCatalogServicesObj()
 }
 
-func (cd *CheDeployer) GetID() string {
-	return cd.id
-}
-
-func (cd *CheDeployer) Deploy(instanceID, brokerNamespace string, contextProfile brokerapi.ContextProfile, parameters map[string]interface{}, userInfo v1.UserInfo, k8sclient kubernetes.Interface, osClientFactory *openshift.ClientFactory) (*brokerapi.CreateServiceInstanceResponse, error) {
-	glog.Infof("Deploying che from deployer, id: %s", instanceID)
+func (cd *CheDeployer) Deploy(req *brokerapi.ProvisionRequest, async bool) (*brokerapi.ProvisionResponse, error) {
+	glog.Infof("Deploying che from deployer, id: %s", req.InstanceId)
 
 	dashboardUrl := os.Getenv("CHE_DASHBOARD_URL")
 
-	return &brokerapi.CreateServiceInstanceResponse{
+	return &brokerapi.ProvisionResponse{
 		Code:         http.StatusAccepted,
 		DashboardURL: dashboardUrl,
 	}, nil
 }
 
-func (cd *CheDeployer) RemoveDeploy(serviceInstanceId string, namespace string, k8sclient kubernetes.Interface) error {
-	return nil
+func (cd *CheDeployer) RemoveDeploy(req *brokerapi.DeprovisionRequest, async bool) (*brokerapi.DeprovisionResponse, error) {
+	return &brokerapi.DeprovisionResponse{}, nil
 }
 
-func (cd *CheDeployer) LastOperation(instanceID string, k8sclient kubernetes.Interface, osclient *openshift.ClientFactory) (*brokerapi.LastOperationResponse, error) {
-	glog.Infof("Getting last operation for %s", instanceID)
+func (cd *CheDeployer) LastOperation (req *brokerapi.LastOperationRequest) (*brokerapi.LastOperationResponse, error) {
+	glog.Infof("Getting last operation for %s", req.InstanceId)
 
 	return &brokerapi.LastOperationResponse{
 		State:       brokerapi.StateSucceeded,

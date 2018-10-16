@@ -2,6 +2,7 @@ package fuse
 
 import (
 	"fmt"
+	"k8s.io/client-go/tools/clientcmd"
 	"net/http"
 	"os"
 	"strings"
@@ -20,15 +21,25 @@ import (
 )
 
 type FuseDeployer struct {
-	id string
+	k8sClient kubernetes.Interface
+	osClient  *openshift.ClientFactory
 }
 
-func NewDeployer(id string) *FuseDeployer {
-	return &FuseDeployer{id: id}
-}
+func NewDeployer() *FuseDeployer {
+	// Instantiate loader for kubeconfig file.
+	kubeconfig := clientcmd.NewNonInteractiveDeferredLoadingClientConfig(
+		clientcmd.NewDefaultClientConfigLoadingRules(),
+		&clientcmd.ConfigOverrides{},
+	)
+	cfg, err := kubeconfig.ClientConfig()
+	if err != nil {
+		panic(errors.Wrap(err, "error creating kube client config"))
+	}
 
-func (fd *FuseDeployer) IsForService(serviceID string) bool {
-	return serviceID == "fuse-service-id"
+	return &FuseDeployer{
+		k8sClient: k8sClient.GetKubeClient(),
+		osClient: openshift.NewClientFactory(cfg),
+    }
 }
 
 func (fd *FuseDeployer) GetCatalogEntries() []*brokerapi.Service {
@@ -36,18 +47,14 @@ func (fd *FuseDeployer) GetCatalogEntries() []*brokerapi.Service {
 	return getCatalogServicesObj()
 }
 
-func (fd *FuseDeployer) GetID() string {
-	return fd.id
-}
-
-func (fd *FuseDeployer) Deploy(instanceID, brokerNamespace string, contextProfile brokerapi.ContextProfile, parameters map[string]interface{}, userInfo v1.UserInfo, k8sclient kubernetes.Interface, osClientFactory *openshift.ClientFactory) (*brokerapi.CreateServiceInstanceResponse, error) {
-	glog.Infof("Deploying fuse from deployer, id: %s", instanceID)
+func (fd *FuseDeployer) Deploy(req *brokerapi.ProvisionRequest, async bool) (*brokerapi.ProvisionResponse, error) {
+	glog.Infof("Deploying fuse from deployer, id: %s", req.InstanceId)
 
 	// Namespace
-	ns, err := k8sclient.CoreV1().Namespaces().Create(getNamespaceObj("fuse-" + instanceID))
+	ns, err := fd.k8sClient.CoreV1().Namespaces().Create(getNamespaceObj("fuse-" + req.InstanceId))
 	if err != nil {
 		glog.Errorf("failed to create fuse namespace: %+v", err)
-		return &brokerapi.CreateServiceInstanceResponse{
+		return &brokerapi.ProvisionResponse{
 			Code: http.StatusInternalServerError,
 		}, errors.Wrap(err, "failed to create namespace for fuse service")
 	}
@@ -55,87 +62,87 @@ func (fd *FuseDeployer) Deploy(instanceID, brokerNamespace string, contextProfil
 	namespace := ns.ObjectMeta.Name
 
 	// ServiceAccount
-	_, err = k8sclient.CoreV1().ServiceAccounts(namespace).Create(getServiceAccountObj())
+	_, err = fd.k8sClient.CoreV1().ServiceAccounts(namespace).Create(getServiceAccountObj())
 	if err != nil {
 		glog.Errorf("failed to create fuse service account: %+v", err)
-		return &brokerapi.CreateServiceInstanceResponse{
+		return &brokerapi.ProvisionResponse{
 			Code: http.StatusInternalServerError,
 		}, errors.Wrap(err, "failed to create service account for fuse service")
 	}
 
 	//Role
-	_, err = k8sclient.RbacV1beta1().Roles(namespace).Create(getRoleObj())
+	_, err = fd.k8sClient.RbacV1beta1().Roles(namespace).Create(getRoleObj())
 	if err != nil {
 		glog.Errorf("failed to create fuse role: %+v", err)
-		return &brokerapi.CreateServiceInstanceResponse{
+		return &brokerapi.ProvisionResponse{
 			Code: http.StatusInternalServerError,
 		}, errors.Wrap(err, "failed to create role for fuse service")
 	}
 
 	// RoleBindings
-	err = fd.createRoleBindings(namespace, userInfo, k8sclient, osClientFactory)
+	err = fd.createRoleBindings(namespace, req.OriginatingUserInfo, fd.k8sClient, fd.osClient)
 	if err != nil {
 		glog.Errorln(err)
-		return &brokerapi.CreateServiceInstanceResponse{
+		return &brokerapi.ProvisionResponse{
 			Code: http.StatusInternalServerError,
 		}, err
 	}
 
 	// ImageStream
-	err = fd.createImageStream(namespace, osClientFactory)
+	err = fd.createImageStream(namespace, fd.osClient)
 	if err != nil {
 		glog.Errorf("failed to create fuse image stream: %+v", err)
-		return &brokerapi.CreateServiceInstanceResponse{
+		return &brokerapi.ProvisionResponse{
 			Code: http.StatusInternalServerError,
 		}, err
 	}
 
 	// DeploymentConfig
-	err = fd.createFuseOperator(namespace, osClientFactory)
+	err = fd.createFuseOperator(namespace, fd.osClient)
 	if err != nil {
 		glog.Errorln(err)
-		return &brokerapi.CreateServiceInstanceResponse{
+		return &brokerapi.ProvisionResponse{
 			Code: http.StatusInternalServerError,
 		}, err
 	}
 
 	// Fuse custom resource
-	dashboardURL, err := fd.createFuseCustomResource(namespace, brokerNamespace, contextProfile.Namespace, k8sclient, userInfo.Username, parameters)
+	dashboardURL, err := fd.createFuseCustomResource(namespace, req.ContextProfile.Namespace, fd.k8sClient, req.OriginatingUserInfo.Username, req.Parameters)
 	if err != nil {
 		glog.Errorln(err)
-		return &brokerapi.CreateServiceInstanceResponse{
+		return &brokerapi.ProvisionResponse{
 			Code: http.StatusInternalServerError,
 		}, err
 	}
 
-	return &brokerapi.CreateServiceInstanceResponse{
+	return &brokerapi.ProvisionResponse{
 		Code:         http.StatusAccepted,
 		DashboardURL: dashboardURL,
 	}, nil
 }
 
-func (fd *FuseDeployer) RemoveDeploy(serviceInstanceId string, namespace string, k8sclient kubernetes.Interface) error {
-	ns := "fuse-" + serviceInstanceId
-	err := k8sclient.CoreV1().Namespaces().Delete(ns, &metav1.DeleteOptions{})
+func (fd *FuseDeployer) RemoveDeploy(req *brokerapi.DeprovisionRequest, async bool) (*brokerapi.DeprovisionResponse, error){
+	ns := "fuse-" + req.InstanceId
+	err := fd.k8sClient.CoreV1().Namespaces().Delete(ns, &metav1.DeleteOptions{})
 	if err != nil {
 		glog.Errorf("failed to delete %s namespace: %+v", ns, err)
-		return errors.Wrap(err, fmt.Sprintf("failed to delete namespace %s", ns))
+		return &brokerapi.DeprovisionResponse{}, errors.Wrap(err, fmt.Sprintf("failed to delete namespace %s", ns))
 	}
-	return nil
+	return &brokerapi.DeprovisionResponse{}, nil
 }
 
-func (fd *FuseDeployer) LastOperation(instanceID string, k8sclient kubernetes.Interface, osclient *openshift.ClientFactory) (*brokerapi.LastOperationResponse, error) {
-	glog.Infof("Getting last operation for %s", instanceID)
-	namespace := "fuse-" + instanceID
+func (fd *FuseDeployer) LastOperation(req *brokerapi.LastOperationRequest) (*brokerapi.LastOperationResponse, error) {
+	glog.Infof("Getting last operation for %s", req.InstanceId)
+	namespace := "fuse-" + req.InstanceId
 	podsToWatch := []string{"syndesis-oauthproxy", "syndesis-server", "syndesis-ui"}
 
-	dcClient, err := osclient.AppsClient()
+	dcClient, err := fd.osClient.AppsClient()
 	if err != nil {
-		glog.Errorf("failed to create an openshift deployment config client: %+v", err)
+		glog.Errorf("failed to create an openshift deployment config k8sClient: %+v", err)
 		return &brokerapi.LastOperationResponse{
 			State:       brokerapi.StateFailed,
-			Description: "Failed to create an openshift deployment config client",
-		}, errors.Wrap(err, "failed to create an openshift deployment config client")
+			Description: "Failed to create an openshift deployment config k8sClient",
+		}, errors.Wrap(err, "failed to create an openshift deployment config k8sClient")
 	}
 
 	for _, v := range podsToWatch {
@@ -169,7 +176,7 @@ func (fd *FuseDeployer) createRoleBindings(namespace string, userInfo v1.UserInf
 
 	authClient, err := osClientFactory.AuthClient()
 	if err != nil {
-		return errors.Wrap(err, "failed to create an openshift authorization client")
+		return errors.Wrap(err, "failed to create an openshift authorization k8sClient")
 	}
 
 	_, err = authClient.RoleBindings(namespace).Create(getViewRoleBindingObj())
@@ -193,7 +200,7 @@ func (fd *FuseDeployer) createRoleBindings(namespace string, userInfo v1.UserInf
 func (fd *FuseDeployer) createImageStream(namespace string, osClientFactory *openshift.ClientFactory) error {
 	imageClient, err := osClientFactory.ImageStreamClient()
 	if err != nil {
-		return errors.Wrap(err, "failed to create an openshift image stream client")
+		return errors.Wrap(err, "failed to create an openshift image stream k8sClient")
 	}
 
 	for _, imgStream := range getFuseOnlineImageStreamsObj() {
@@ -209,7 +216,7 @@ func (fd *FuseDeployer) createImageStream(namespace string, osClientFactory *ope
 func (fd *FuseDeployer) createFuseOperator(namespace string, osClientFactory *openshift.ClientFactory) error {
 	dcClient, err := osClientFactory.AppsClient()
 	if err != nil {
-		return errors.Wrap(err, "failed to create an openshift deployment config client")
+		return errors.Wrap(err, "failed to create an openshift deployment config k8sClient")
 	}
 
 	_, err = dcClient.DeploymentConfigs(namespace).Create(getDeploymentConfigObj())
@@ -220,10 +227,10 @@ func (fd *FuseDeployer) createFuseOperator(namespace string, osClientFactory *op
 	return nil
 }
 
-func (fd *FuseDeployer) createFuseCustomResource(namespace, brokerNamespace, userNamespace string, k8sclient kubernetes.Interface, userID string, parameters map[string]interface{}) (string, error) {
+func (fd *FuseDeployer) createFuseCustomResource(namespace, userNamespace string, k8sclient kubernetes.Interface, userID string, parameters map[string]interface{}) (string, error) {
 	fuseClient, _, err := k8sClient.GetResourceClient("syndesis.io/v1alpha1", "Syndesis", namespace)
 	if err != nil {
-		return "", errors.Wrap(err, "failed to create fuse client")
+		return "", errors.Wrap(err, "failed to create fuse k8sClient")
 	}
 
 	integrationsLimit := 0

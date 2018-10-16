@@ -4,24 +4,14 @@ import (
 	"net/http"
 	"os"
 
-	"k8s.io/api/authentication/v1"
-
 	brokerapi "github.com/integr8ly/managed-service-broker/pkg/broker"
-	"github.com/integr8ly/managed-service-broker/pkg/clients/openshift"
 	glog "github.com/sirupsen/logrus"
-	"k8s.io/client-go/kubernetes"
 )
 
-type LauncherDeployer struct {
-	id string
-}
+type LauncherDeployer struct {}
 
-func NewDeployer(id string) *LauncherDeployer {
-	return &LauncherDeployer{id: id}
-}
-
-func (ld *LauncherDeployer) IsForService(serviceID string) bool {
-	return serviceID == "launcher-service-id"
+func NewDeployer() *LauncherDeployer {
+	return &LauncherDeployer{}
 }
 
 func (ld *LauncherDeployer) GetCatalogEntries() []*brokerapi.Service {
@@ -29,27 +19,23 @@ func (ld *LauncherDeployer) GetCatalogEntries() []*brokerapi.Service {
 	return getCatalogServicesObj()
 }
 
-func (ld *LauncherDeployer) GetID() string {
-	return ld.id
-}
-
-func (ld *LauncherDeployer) Deploy(instanceID, brokerNamespace string, contextProfile brokerapi.ContextProfile, parameters map[string]interface{}, userInfo v1.UserInfo, k8sclient kubernetes.Interface, osClientFactory *openshift.ClientFactory) (*brokerapi.CreateServiceInstanceResponse, error) {
-	glog.Infof("Deploying launcher from deployer, id: %s", instanceID)
+func (ld *LauncherDeployer) Deploy(req *brokerapi.ProvisionRequest, async bool) (*brokerapi.ProvisionResponse, error) {
+	glog.Infof("Deploying launcher from deployer, id: %s", req.InstanceId)
 
 	dashboardUrl := os.Getenv("LAUNCHER_DASHBOARD_URL")
 
-	return &brokerapi.CreateServiceInstanceResponse{
+	return &brokerapi.ProvisionResponse{
 		Code:         http.StatusAccepted,
 		DashboardURL: dashboardUrl,
 	}, nil
 }
 
-func (ld *LauncherDeployer) RemoveDeploy(serviceInstanceId string, namespace string, k8sclient kubernetes.Interface) error {
-	return nil
+func (ld *LauncherDeployer) RemoveDeploy(req *brokerapi.DeprovisionRequest, async bool) (*brokerapi.DeprovisionResponse, error) {
+	return &brokerapi.DeprovisionResponse{}, nil
 }
 
-func (ld *LauncherDeployer) LastOperation(instanceID string, k8sclient kubernetes.Interface, osclient *openshift.ClientFactory) (*brokerapi.LastOperationResponse, error) {
-	glog.Infof("Getting last operation for %s", instanceID)
+func (ld *LauncherDeployer) LastOperation(req *brokerapi.LastOperationRequest) (*brokerapi.LastOperationResponse, error) {
+	glog.Infof("Getting last operation for %s", req.InstanceId)
 
 	return &brokerapi.LastOperationResponse{
 		State:       brokerapi.StateSucceeded,
