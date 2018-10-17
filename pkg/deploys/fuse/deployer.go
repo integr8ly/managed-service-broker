@@ -2,7 +2,6 @@ package fuse
 
 import (
 	"fmt"
-	"k8s.io/client-go/tools/clientcmd"
 	"net/http"
 	"os"
 	"strings"
@@ -25,20 +24,10 @@ type FuseDeployer struct {
 	osClient  *openshift.ClientFactory
 }
 
-func NewDeployer() *FuseDeployer {
-	// Instantiate loader for kubeconfig file.
-	kubeconfig := clientcmd.NewNonInteractiveDeferredLoadingClientConfig(
-		clientcmd.NewDefaultClientConfigLoadingRules(),
-		&clientcmd.ConfigOverrides{},
-	)
-	cfg, err := kubeconfig.ClientConfig()
-	if err != nil {
-		panic(errors.Wrap(err, "error creating kube client config"))
-	}
-
+func NewDeployer(k8sClient kubernetes.Interface, osClient *openshift.ClientFactory) *FuseDeployer {
 	return &FuseDeployer{
-		k8sClient: k8sClient.GetKubeClient(),
-		osClient: openshift.NewClientFactory(cfg),
+		k8sClient: k8sClient,
+		osClient: osClient,
     }
 }
 
@@ -138,11 +127,11 @@ func (fd *FuseDeployer) LastOperation(req *brokerapi.LastOperationRequest) (*bro
 
 	dcClient, err := fd.osClient.AppsClient()
 	if err != nil {
-		glog.Errorf("failed to create an openshift deployment config k8sClient: %+v", err)
+		glog.Errorf("failed to create an openshift deployment config client: %+v", err)
 		return &brokerapi.LastOperationResponse{
 			State:       brokerapi.StateFailed,
 			Description: "Failed to create an openshift deployment config k8sClient",
-		}, errors.Wrap(err, "failed to create an openshift deployment config k8sClient")
+		}, errors.Wrap(err, "failed to create an openshift deployment config client")
 	}
 
 	for _, v := range podsToWatch {
@@ -176,7 +165,7 @@ func (fd *FuseDeployer) createRoleBindings(namespace string, userInfo v1.UserInf
 
 	authClient, err := osClientFactory.AuthClient()
 	if err != nil {
-		return errors.Wrap(err, "failed to create an openshift authorization k8sClient")
+		return errors.Wrap(err, "failed to create an openshift authorization client")
 	}
 
 	_, err = authClient.RoleBindings(namespace).Create(getViewRoleBindingObj())
@@ -200,7 +189,7 @@ func (fd *FuseDeployer) createRoleBindings(namespace string, userInfo v1.UserInf
 func (fd *FuseDeployer) createImageStream(namespace string, osClientFactory *openshift.ClientFactory) error {
 	imageClient, err := osClientFactory.ImageStreamClient()
 	if err != nil {
-		return errors.Wrap(err, "failed to create an openshift image stream k8sClient")
+		return errors.Wrap(err, "failed to create an openshift image stream client")
 	}
 
 	for _, imgStream := range getFuseOnlineImageStreamsObj() {
@@ -216,7 +205,7 @@ func (fd *FuseDeployer) createImageStream(namespace string, osClientFactory *ope
 func (fd *FuseDeployer) createFuseOperator(namespace string, osClientFactory *openshift.ClientFactory) error {
 	dcClient, err := osClientFactory.AppsClient()
 	if err != nil {
-		return errors.Wrap(err, "failed to create an openshift deployment config k8sClient")
+		return errors.Wrap(err, "failed to create an openshift deployment config client")
 	}
 
 	_, err = dcClient.DeploymentConfigs(namespace).Create(getDeploymentConfigObj())
@@ -230,7 +219,7 @@ func (fd *FuseDeployer) createFuseOperator(namespace string, osClientFactory *op
 func (fd *FuseDeployer) createFuseCustomResource(namespace, userNamespace string, k8sclient kubernetes.Interface, userID string, parameters map[string]interface{}) (string, error) {
 	fuseClient, _, err := k8sClient.GetResourceClient("syndesis.io/v1alpha1", "Syndesis", namespace)
 	if err != nil {
-		return "", errors.Wrap(err, "failed to create fuse k8sClient")
+		return "", errors.Wrap(err, "failed to create fuse client")
 	}
 
 	integrationsLimit := 0

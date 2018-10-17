@@ -4,6 +4,10 @@ import (
 	"context"
 	"flag"
 	"fmt"
+	"github.com/integr8ly/managed-service-broker/pkg/clients/openshift"
+	"github.com/operator-framework/operator-sdk/pkg/k8sclient"
+	"github.com/pkg/errors"
+	"k8s.io/client-go/tools/clientcmd"
 	"os"
 	"os/signal"
 	"path"
@@ -13,15 +17,11 @@ import (
 	"github.com/integr8ly/managed-service-broker/pkg/broker"
 	"github.com/integr8ly/managed-service-broker/pkg/broker/controller"
 	"github.com/integr8ly/managed-service-broker/pkg/broker/server"
-	"github.com/integr8ly/managed-service-broker/pkg/clients/openshift"
 	"github.com/integr8ly/managed-service-broker/pkg/deploys/che"
 	"github.com/integr8ly/managed-service-broker/pkg/deploys/fuse"
 	"github.com/integr8ly/managed-service-broker/pkg/deploys/launcher"
 	"github.com/integr8ly/managed-service-broker/pkg/deploys/threescale"
-	"github.com/operator-framework/operator-sdk/pkg/k8sclient"
-	"github.com/pkg/errors"
 	glog "github.com/sirupsen/logrus"
-	"k8s.io/client-go/tools/clientcmd"
 )
 
 var options struct {
@@ -65,8 +65,20 @@ func runWithContext(ctx context.Context) error {
 	addr := ":" + strconv.Itoa(options.Port)
 	var err error
 
+	// Instantiate loader for kubeconfig file.
+	kubeconfig := clientcmd.NewNonInteractiveDeferredLoadingClientConfig(
+		clientcmd.NewDefaultClientConfigLoadingRules(),
+		&clientcmd.ConfigOverrides{},
+	)
+	cfg, err := kubeconfig.ClientConfig()
+	if err != nil {
+		return errors.Wrap(err, "error creating kube client config")
+	}
+	k8sClient := k8sclient.GetKubeClient()
+	osClient := openshift.NewClientFactory(cfg)
+
 	ctrlr := controller.CreateController([]controller.Deployer{
-		fuse.NewDeployer(),
+		fuse.NewDeployer(k8sClient, osClient),
 		launcher.NewDeployer(),
 		che.NewDeployer(),
 		threescale.NewDeployer(),
