@@ -5,11 +5,12 @@ import (
 	"github.com/integr8ly/managed-service-broker/pkg/deploys/fuse/pkg/apis/syndesis/v1alpha1"
 	appsv1 "github.com/openshift/api/apps/v1"
 	authv1 "github.com/openshift/api/authorization/v1"
-	imagev1 "github.com/openshift/api/image/v1"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1beta1 "k8s.io/api/rbac/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
+
+const FUSE_IMAGE_STREAMS_NAMESPACE string = "openshift"
 
 // Fuse plan
 func getCatalogServicesObj() []*brokerapi.Service {
@@ -240,183 +241,6 @@ func getEditRoleBindingObj() *authv1.RoleBinding {
 	}
 }
 
-func getFuseOnlineImageStreamsObj() []imagev1.ImageStream {
-	return []imagev1.ImageStream{
-		{
-			ObjectMeta: metav1.ObjectMeta{
-				Name: "fuse-ignite-server",
-				Labels: map[string]string{
-					"syndesis.io/app":       "syndesis",
-					"syndesis.io/type":      "infrastructure",
-					"syndesis.io/component": "syndesis-server",
-				},
-			},
-			Spec: imagev1.ImageStreamSpec{
-				Tags: []imagev1.TagReference{
-					{
-						From: &corev1.ObjectReference{
-							Kind: "DockerImage",
-							Name: "registry.access.redhat.com/fuse7/fuse-ignite-server:1.1-13",
-						},
-						ImportPolicy: imagev1.TagImportPolicy{
-							Scheduled: true,
-						},
-						Name: "1.4",
-					},
-				},
-			},
-		},
-		{
-			ObjectMeta: metav1.ObjectMeta{
-				Name: "fuse-ignite-ui",
-				Labels: map[string]string{
-					"syndesis.io/app":       "syndesis",
-					"syndesis.io/type":      "infrastructure",
-					"syndesis.io/component": "syndesis-ui",
-				},
-			},
-			Spec: imagev1.ImageStreamSpec{
-				Tags: []imagev1.TagReference{
-					{
-						From: &corev1.ObjectReference{
-							Kind: "DockerImage",
-							Name: "registry.access.redhat.com/fuse7/fuse-ignite-ui:1.1-8",
-						},
-						ImportPolicy: imagev1.TagImportPolicy{
-							Scheduled: true,
-						},
-						Name: "1.4",
-					},
-				},
-			},
-		},
-		{
-			ObjectMeta: metav1.ObjectMeta{
-				Name: "fuse-ignite-meta",
-				Labels: map[string]string{
-					"syndesis.io/app":       "syndesis",
-					"syndesis.io/type":      "infrastructure",
-					"syndesis.io/component": "syndesis-meta",
-				},
-			},
-			Spec: imagev1.ImageStreamSpec{
-				Tags: []imagev1.TagReference{
-					{
-						From: &corev1.ObjectReference{
-							Kind: "DockerImage",
-							Name: "registry.access.redhat.com/fuse7/fuse-ignite-meta:1.1-12",
-						},
-						ImportPolicy: imagev1.TagImportPolicy{
-							Scheduled: true,
-						},
-						Name: "1.4",
-					},
-				},
-			},
-		},
-		{
-			ObjectMeta: metav1.ObjectMeta{
-				Name: "oauth-proxy",
-				Labels: map[string]string{
-					"syndesis.io/app":       "syndesis",
-					"syndesis.io/type":      "infrastructure",
-					"syndesis.io/component": "syndesis-oauthproxy",
-				},
-			},
-			Spec: imagev1.ImageStreamSpec{
-				Tags: []imagev1.TagReference{
-					{
-						From: &corev1.ObjectReference{
-							Kind: "DockerImage",
-							Name: "docker.io/openshift/oauth-proxy:v1.1.0",
-						},
-						ImportPolicy: imagev1.TagImportPolicy{
-							Scheduled: true,
-						},
-						Name: "v1.1.0",
-					},
-				},
-			},
-		},
-		{
-			ObjectMeta: metav1.ObjectMeta{
-				Name: "prometheus",
-				Labels: map[string]string{
-					"syndesis.io/app":       "syndesis",
-					"syndesis.io/type":      "infrastructure",
-					"syndesis.io/component": "syndesis-prometheus",
-				},
-			},
-			Spec: imagev1.ImageStreamSpec{
-				Tags: []imagev1.TagReference{
-					{
-						From: &corev1.ObjectReference{
-							Kind: "DockerImage",
-							Name: "registry.access.redhat.com/openshift3/prometheus:v3.9.25",
-						},
-						ImportPolicy: imagev1.TagImportPolicy{
-							Scheduled: true,
-						},
-						Name: "v2.1.0",
-					},
-				},
-			},
-		},
-		{
-			ObjectMeta: metav1.ObjectMeta{
-				Name: "fuse-ignite-s2i",
-				Labels: map[string]string{
-					"syndesis.io/app":       "syndesis",
-					"syndesis.io/type":      "infrastructure",
-					"syndesis.io/component": "s2i-java",
-				},
-			},
-			Spec: imagev1.ImageStreamSpec{
-				Tags: []imagev1.TagReference{
-					{
-						From: &corev1.ObjectReference{
-							Kind: "DockerImage",
-							Name: "registry.access.redhat.com/fuse7/fuse-ignite-s2i:1.1-13",
-						},
-						ImportPolicy: imagev1.TagImportPolicy{
-							Scheduled: true,
-						},
-						Name: "1.4",
-					},
-				},
-			},
-		},
-		{
-			ObjectMeta: metav1.ObjectMeta{
-				Name: "fuse-online-operator",
-				Labels: map[string]string{
-					"app":                   "syndesis",
-					"syndesis.io/app":       "syndesis",
-					"syndesis.io/type":      "operator",
-					"syndesis.io/component": "syndesis-operator",
-				},
-			},
-			Spec: imagev1.ImageStreamSpec{
-				LookupPolicy: imagev1.ImageLookupPolicy{
-					Local: true,
-				},
-				Tags: []imagev1.TagReference{
-					{
-						From: &corev1.ObjectReference{
-							Kind: "DockerImage",
-							Name: "registry.access.redhat.com/fuse7/fuse-online-operator:1.1-6",
-						},
-						ImportPolicy: imagev1.TagImportPolicy{
-							Scheduled: true,
-						},
-						Name: "1.4",
-					},
-				},
-			},
-		},
-	}
-}
-
 // Fuse operator deployment config
 func getDeploymentConfigObj() *appsv1.DeploymentConfig {
 	return &appsv1.DeploymentConfig{
@@ -476,8 +300,9 @@ func getDeploymentConfigObj() *appsv1.DeploymentConfig {
 							"syndesis-operator",
 						},
 						From: corev1.ObjectReference{
-							Kind: "ImageStreamTag",
-							Name: "fuse-online-operator:1.4",
+							Kind:      "ImageStreamTag",
+							Name:      "fuse-online-operator:1.4",
+							Namespace: FUSE_IMAGE_STREAMS_NAMESPACE,
 						},
 					},
 					Type: "ImageChange",
@@ -559,7 +384,7 @@ func getFuseObj(namespace, userNamespace string, integrationsLimit int) *v1alpha
 			Annotations: map[string]string{},
 		},
 		Spec: v1alpha1.SyndesisSpec{
-			ImageStreamNamespace: namespace,
+			ImageStreamNamespace: FUSE_IMAGE_STREAMS_NAMESPACE,
 			Integration: v1alpha1.IntegrationSpec{
 				Limit: &integrationsLimit,
 			},
