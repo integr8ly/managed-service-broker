@@ -81,15 +81,6 @@ func (fd *FuseDeployer) Deploy(instanceID, brokerNamespace string, contextProfil
 		}, err
 	}
 
-	// ImageStream
-	err = fd.createImageStream(namespace, osClientFactory)
-	if err != nil {
-		glog.Errorf("failed to create fuse image stream: %+v", err)
-		return &brokerapi.CreateServiceInstanceResponse{
-			Code: http.StatusInternalServerError,
-		}, err
-	}
-
 	// DeploymentConfig
 	err = fd.createFuseOperator(namespace, osClientFactory)
 	if err != nil {
@@ -185,22 +176,6 @@ func (fd *FuseDeployer) createRoleBindings(namespace string, userInfo v1.UserInf
 	_, err = authClient.RoleBindings(namespace).Create(getUserViewRoleBindingObj(namespace, userInfo.Username))
 	if err != nil {
 		return errors.Wrap(err, "failed to create user view role binding for fuse service")
-	}
-
-	return nil
-}
-
-func (fd *FuseDeployer) createImageStream(namespace string, osClientFactory *openshift.ClientFactory) error {
-	imageClient, err := osClientFactory.ImageStreamClient()
-	if err != nil {
-		return errors.Wrap(err, "failed to create an openshift image stream client")
-	}
-
-	for _, imgStream := range getFuseOnlineImageStreamsObj() {
-		_, err = imageClient.ImageStreams(namespace).Create(&imgStream)
-		if err != nil {
-			return errors.Wrap(err, "failed to create "+imgStream.ObjectMeta.Name+" image stream for fuse service")
-		}
 	}
 
 	return nil
