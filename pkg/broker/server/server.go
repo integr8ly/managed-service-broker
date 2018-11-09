@@ -20,9 +20,10 @@ import (
 	"context"
 	"crypto/tls"
 	"fmt"
-	"k8s.io/apimachinery/pkg/api/errors"
 	"net/http"
 	"time"
+
+	"k8s.io/apimachinery/pkg/api/errors"
 
 	brokerapi "github.com/integr8ly/managed-service-broker/pkg/broker"
 	"github.com/integr8ly/managed-service-broker/pkg/broker/controller"
@@ -31,7 +32,6 @@ import (
 	"github.com/gorilla/mux"
 	glog "github.com/sirupsen/logrus"
 )
-
 
 type server struct {
 	controller controller.Controller
@@ -47,7 +47,7 @@ func createHandler(c controller.Controller) http.Handler {
 	var router = mux.NewRouter()
 
 	router.HandleFunc("/v2/catalog", s.catalog).Methods("GET")
-	router.HandleFunc("/v2/service_instances/{instance_id}/last_operation", s.getServiceInstanceLastOperation).Methods("GET")
+	router.HandleFunc("/v2/service_instances/{instance_id}/last_operation", s.lastOperation).Methods("GET")
 	router.HandleFunc("/v2/service_instances/{instance_id}", s.createServiceInstance).Methods("PUT")
 	router.HandleFunc("/v2/service_instances/{instance_id}", s.removeServiceInstance).Methods("DELETE")
 	router.HandleFunc("/v2/service_instances/{instance_id}/service_bindings/{binding_id}", s.bind).Methods("PUT")
@@ -119,18 +119,18 @@ func (s *server) catalog(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (s *server) getServiceInstanceLastOperation(w http.ResponseWriter, r *http.Request) {
+func (s *server) lastOperation(w http.ResponseWriter, r *http.Request) {
 	instanceID := mux.Vars(r)["instance_id"]
 	q := r.URL.Query()
 	serviceID := q.Get("service_id")
 	planID := q.Get("plan_id")
 	operation := q.Get("operation")
-	glog.Infof("Get service slice... %s", instanceID)
 
-	if result, err := s.controller.GetServiceInstanceLastOperation(instanceID, serviceID, planID, operation); err == nil {
-		util.WriteResponse(w, http.StatusOK, result)
-	} else {
+	result, err := s.controller.LastOperation(instanceID, serviceID, planID, operation)
+	if err != nil {
 		util.WriteErrorResponse(w, http.StatusBadRequest, err)
+	} else {
+		util.WriteResponse(w, http.StatusOK, result)
 	}
 }
 
@@ -150,7 +150,6 @@ func (s *server) createServiceInstance(w http.ResponseWriter, r *http.Request) {
 	if req.Parameters == nil {
 		req.Parameters = make(map[string]interface{})
 	}
-
 
 	q := r.URL.Query()
 	async := q.Get("accepts_incomplete") == "true"
@@ -223,7 +222,7 @@ func (s *server) removeServiceInstance(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	result, err := s.controller.RemoveServiceInstance(instanceID, serviceID, planID, async);
+	result, err := s.controller.RemoveServiceInstance(instanceID, serviceID, planID, async)
 	if err != nil {
 		// Should handle:
 		// if the Service Instance does not exist status code 410

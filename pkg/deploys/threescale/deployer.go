@@ -47,7 +47,7 @@ func (fd *ThreeScaleDeployer) RemoveDeploy(serviceInstanceId string, namespace s
 	return nil
 }
 
-func (fd *ThreeScaleDeployer) LastOperation(instanceID string, k8sclient kubernetes.Interface, osclient *openshift.ClientFactory) (*brokerapi.LastOperationResponse, error) {
+func (fd *ThreeScaleDeployer) LastOperation(instanceID string, k8sclient kubernetes.Interface, osclient *openshift.ClientFactory, operation string) (*brokerapi.LastOperationResponse, error) {
 	glog.Infof("Getting last operation for %s", instanceID)
 
 	return &brokerapi.LastOperationResponse{
