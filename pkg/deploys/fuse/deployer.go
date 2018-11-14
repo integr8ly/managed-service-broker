@@ -108,41 +108,69 @@ func (fd *FuseDeployer) Deploy(instanceID, brokerNamespace string, contextProfil
 func (fd *FuseDeployer) RemoveDeploy(serviceInstanceId string, namespace string, k8sclient kubernetes.Interface) error {
 	ns := "fuse-" + serviceInstanceId
 	err := k8sclient.CoreV1().Namespaces().Delete(ns, &metav1.DeleteOptions{})
-	if err != nil {
+	if err != nil && !strings.Contains(err.Error(), "not found") {
 		glog.Errorf("failed to delete %s namespace: %+v", ns, err)
 		return errors.Wrap(err, fmt.Sprintf("failed to delete namespace %s", ns))
+	} else if err != nil && strings.Contains(err.Error(), "not found") {
+		glog.Infof("fuse namespace already deleted")
 	}
 	return nil
 }
 
-func (fd *FuseDeployer) LastOperation(instanceID string, k8sclient kubernetes.Interface, osclient *openshift.ClientFactory) (*brokerapi.LastOperationResponse, error) {
+// LastOperation should only return an error if it was unable to check the status, not if the status is failed, when status is failed, set that in the Response object
+func (fd *FuseDeployer) LastOperation(instanceID string, k8sclient kubernetes.Interface, osclient *openshift.ClientFactory, operation string) (*brokerapi.LastOperationResponse, error) {
 	glog.Infof("Getting last operation for %s", instanceID)
 	namespace := "fuse-" + instanceID
-	podsToWatch := []string{"syndesis-oauthproxy", "syndesis-server", "syndesis-ui"}
+	switch operation {
+	case "deploy":
+		podsToWatch := []string{"syndesis-oauthproxy", "syndesis-server", "syndesis-ui"}
+		dcClient, err := osclient.AppsClient()
+		if err != nil {
+			glog.Errorf("failed to create an openshift deployment config client: %+v", err)
+			return &brokerapi.LastOperationResponse{
+				State:       brokerapi.StateFailed,
+				Description: "Failed to create an openshift deployment config client",
+			}, nil
+		}
 
-	dcClient, err := osclient.AppsClient()
-	if err != nil {
-		glog.Errorf("failed to create an openshift deployment config client: %+v", err)
+		for _, v := range podsToWatch {
+			state, description, err := fd.getPodStatus(v, namespace, dcClient)
+			if state != brokerapi.StateSucceeded {
+				return &brokerapi.LastOperationResponse{
+					State:       state,
+					Description: description,
+				}, err
+			}
+		}
+
+		return &brokerapi.LastOperationResponse{
+			State:       brokerapi.StateSucceeded,
+			Description: "fuse deployed successfully",
+		}, nil
+	case "remove":
+		_, err := k8sclient.CoreV1().Namespaces().Get(namespace, metav1.GetOptions{})
+		if err != nil && strings.Contains(err.Error(), "not found") {
+			return &brokerapi.LastOperationResponse{
+				State:       brokerapi.StateSucceeded,
+				Description: "fuse removed successfully",
+			}, nil
+		} else if err != nil {
+			//any error getting namespace outside of "not found"
+			return &brokerapi.LastOperationResponse{
+				State:       brokerapi.StateInProgress,
+				Description: "failed to find namespace",
+			}, errors.Wrap(err, "could not find namespace")
+		}
+		return &brokerapi.LastOperationResponse{
+			State:       brokerapi.StateInProgress,
+			Description: "fuse removal in progress",
+		}, nil
+	default:
 		return &brokerapi.LastOperationResponse{
 			State:       brokerapi.StateFailed,
-			Description: "Failed to create an openshift deployment config client",
-		}, errors.Wrap(err, "failed to create an openshift deployment config client")
+			Description: "unknown operation: " + operation,
+		}, nil
 	}
-
-	for _, v := range podsToWatch {
-		state, description, err := fd.getPodStatus(v, namespace, dcClient)
-		if state != brokerapi.StateSucceeded {
-			return &brokerapi.LastOperationResponse{
-				State:       state,
-				Description: description,
-			}, err
-		}
-	}
-
-	return &brokerapi.LastOperationResponse{
-		State:       brokerapi.StateSucceeded,
-		Description: "fuse deployed successfully",
-	}, nil
 }
 
 func (fd *FuseDeployer) createRoleBindings(namespace string, userInfo v1.UserInfo, k8sclient kubernetes.Interface, osClientFactory *openshift.ClientFactory) error {
@@ -240,7 +268,7 @@ func (fd *FuseDeployer) getPodStatus(podName, namespace string, dcClient *appsv1
 	}
 
 	for _, v := range pod.Status.Conditions {
-		if v.Status == "False" {
+		if v.Type == "Ready" && v.Status == "False" {
 			return brokerapi.StateInProgress, v.Message, nil
 		}
 	}

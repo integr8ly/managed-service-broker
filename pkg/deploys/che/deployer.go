@@ -48,7 +48,7 @@ func (cd *CheDeployer) RemoveDeploy(serviceInstanceId string, namespace string, 
 	return nil
 }
 
-func (cd *CheDeployer) LastOperation(instanceID string, k8sclient kubernetes.Interface, osclient *openshift.ClientFactory) (*brokerapi.LastOperationResponse, error) {
+func (cd *CheDeployer) LastOperation(instanceID string, k8sclient kubernetes.Interface, osclient *openshift.ClientFactory, operation string) (*brokerapi.LastOperationResponse, error) {
 	glog.Infof("Getting last operation for %s", instanceID)
 
 	return &brokerapi.LastOperationResponse{

@@ -17,6 +17,7 @@ limitations under the License.
 package controller
 
 import (
+	"errors"
 	"fmt"
 	"sync"
 
@@ -36,7 +37,7 @@ import (
 type Deployer interface {
 	GetCatalogEntries() []*brokerapi.Service
 	Deploy(id string, brokerNs string, contextProfile brokerapi.ContextProfile, parameters map[string]interface{}, user v1.UserInfo, k8sclient kubernetes.Interface, osclient *openshift.ClientFactory) (*brokerapi.CreateServiceInstanceResponse, error)
-	LastOperation(instanceID string, k8sclient kubernetes.Interface, osclient *openshift.ClientFactory) (*brokerapi.LastOperationResponse, error)
+	LastOperation(instanceID string, k8sclient kubernetes.Interface, osclient *openshift.ClientFactory, operation string) (*brokerapi.LastOperationResponse, error)
 	GetID() string
 	IsForService(serviceID string) bool
 	RemoveDeploy(serviceInstanceId string, namespace string, k8sclient kubernetes.Interface) error
@@ -47,7 +48,7 @@ type Deployer interface {
 type Controller interface {
 	Catalog() (*broker.Catalog, error)
 
-	GetServiceInstanceLastOperation(instanceID, serviceID, planID, operation string) (*broker.LastOperationResponse, error)
+	LastOperation(instanceID, serviceID, planID, operation string) (*broker.LastOperationResponse, error)
 	CreateServiceInstance(instanceID string, req *broker.CreateServiceInstanceRequest) (*broker.CreateServiceInstanceResponse, error)
 	RemoveServiceInstance(instanceID, serviceID, planID string, acceptsIncomplete bool) (*broker.DeleteServiceInstanceResponse, error)
 
@@ -116,49 +117,34 @@ func (c *userProvidedController) CreateServiceInstance(
 	glog.Infof("Create service instance: %s, user: %s", req.ServiceID, req.OriginatingUserInfo.Username)
 	for _, deployer := range c.registeredDeployers {
 		if deployer.IsForService(req.ServiceID) {
-			return deployer.Deploy(instanceID, c.brokerNS, req.ContextProfile, req.Parameters, req.OriginatingUserInfo, c.k8sclient, c.osClientFactory)
+			response, err := deployer.Deploy(instanceID, c.brokerNS, req.ContextProfile, req.Parameters, req.OriginatingUserInfo, c.k8sclient, c.osClientFactory)
+			response.Operation = "deploy"
+			return response, err
 		}
 	}
 
 	return &brokerapi.CreateServiceInstanceResponse{Code: http.StatusInternalServerError}, nil
 }
 
-func (c *userProvidedController) GetServiceInstanceLastOperation(
-	instanceID,
-	serviceID,
-	planID,
-	operation string,
-) (*brokerapi.LastOperationResponse, error) {
+func (c *userProvidedController) LastOperation(instanceID, serviceID, planID, operation string) (*brokerapi.LastOperationResponse, error) {
 	glog.Info("GetServiceInstanceLastOperation()", "operation "+operation, serviceID)
 	for _, deployer := range c.registeredDeployers {
 		if deployer.IsForService(serviceID) {
-			return deployer.LastOperation(instanceID, c.k8sclient, c.osClientFactory)
+			return deployer.LastOperation(instanceID, c.k8sclient, c.osClientFactory, operation)
 		}
 	}
 
 	return &brokerapi.LastOperationResponse{State: brokerapi.StateFailed, Description: "Could not find deployer for " + serviceID}, nil
 }
 
-func (c *userProvidedController) RemoveServiceInstance(
-	instanceID,
-	serviceID,
-	planID string,
-	acceptsIncomplete bool,
-) (*brokerapi.DeleteServiceInstanceResponse, error) {
+func (c *userProvidedController) RemoveServiceInstance(instanceID, serviceID, planID string, acceptsIncomplete bool) (*brokerapi.DeleteServiceInstanceResponse, error) {
 	glog.Info("RemoveServiceInstance()", instanceID)
-
 	for _, deployer := range c.registeredDeployers {
 		if deployer.IsForService(serviceID) {
-			glog.Info("RemoveDeploy()", instanceID)
-			err := deployer.RemoveDeploy(instanceID, c.brokerNS, c.k8sclient)
-			if err != nil {
-				glog.Errorf("failed to remove service instance", err)
-				return &brokerapi.DeleteServiceInstanceResponse{}, err
-			}
+			return &brokerapi.DeleteServiceInstanceResponse{Operation: "remove"}, deployer.RemoveDeploy(instanceID, c.brokerNS, c.k8sclient)
 		}
 	}
-
-	return &brokerapi.DeleteServiceInstanceResponse{}, nil
+	return &brokerapi.DeleteServiceInstanceResponse{Operation: "remove"}, errors.New("could not find deployer to remove: " + serviceID + instanceID)
 }
 
 func (c *userProvidedController) Bind(

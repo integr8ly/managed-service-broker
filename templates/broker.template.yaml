@@ -94,7 +94,7 @@ objects:
       - ""
       resources:
       - namespaces
-      verbs: ["create", "delete"]
+      verbs: ["create", "delete", "get"]
     - apiGroups:
       - rbac.authorization.k8s.io
       resourceNames: ["edit", "view", "system:deployer", "system:image-builder", "system:image-puller"]
