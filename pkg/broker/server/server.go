@@ -128,8 +128,15 @@ func (s *server) lastOperation(w http.ResponseWriter, r *http.Request) {
 
 	result, err := s.controller.LastOperation(instanceID, serviceID, planID, operation)
 	if err != nil {
+		if errors.IsNotFound(err) {
+			glog.Infof("Service Instance %s not found.", instanceID)
+			util.WriteErrorResponse(w, http.StatusGone, err)
+			return
+		}
+
 		util.WriteErrorResponse(w, http.StatusBadRequest, err)
 	} else {
+		glog.Infof("LastOperation for %s had status: %s", instanceID, result.State)
 		util.WriteResponse(w, http.StatusOK, result)
 	}
 }
@@ -154,7 +161,7 @@ func (s *server) createServiceInstance(w http.ResponseWriter, r *http.Request) {
 	q := r.URL.Query()
 	async := q.Get("accepts_incomplete") == "true"
 	if async != true {
-		util.WriteResponse(w, http.StatusUnprocessableEntity, brokerapi.NewUnprocessableEntityError())
+		util.WriteResponse(w, http.StatusUnprocessableEntity, brokerapi.NewAsyncUnprocessableError())
 		return
 	}
 
@@ -218,14 +225,18 @@ func (s *server) removeServiceInstance(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if async != true {
-		util.WriteResponse(w, http.StatusUnprocessableEntity, brokerapi.NewUnprocessableEntityError())
+		util.WriteResponse(w, http.StatusUnprocessableEntity, brokerapi.NewAsyncUnprocessableError())
 		return
 	}
 
 	result, err := s.controller.RemoveServiceInstance(instanceID, serviceID, planID, async)
 	if err != nil {
-		// Should handle:
-		// if the Service Instance does not exist status code 410
+		if errors.IsNotFound(err) {
+			glog.Infof("Service Instance %s not found. Ending request.", instanceID)
+			util.WriteErrorResponse(w, http.StatusGone, err)
+			return
+		}
+
 		util.WriteErrorResponse(w, http.StatusInternalServerError, err)
 		return
 	}

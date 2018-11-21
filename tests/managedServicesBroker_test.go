@@ -1,10 +1,12 @@
 package test
 
 import (
+	"crypto/tls"
 	"flag"
 	"fmt"
+	testapi "github.com/integr8ly/managed-service-broker/tests/apis"
 	brokerClient "github.com/integr8ly/managed-service-broker/tests/broker_client"
-	suites "github.com/integr8ly/managed-service-broker/tests/test_suites"
+	"github.com/integr8ly/managed-service-broker/tests/test_suites/broker"
 	"os"
 	"testing"
 )
@@ -23,13 +25,15 @@ import (
 const USER_IDENTITY = "kubernetes eyJ1c2VybmFtZSI6ImRldmVsb3BlciIsInVpZCI6IiIsImdyb3VwcyI6WyJzeXN0ZW06YXV0aGVudGljYXRlZDpvYXV0aCIsInN5c3RlbTphdXRoZW50aWNhdGVkIl0sImV4dHJhIjp7InNjb3Blcy5hdXRob3JpemF0aW9uLm9wZW5zaGlmdC5pbyI6WyJ1c2VyOmZ1bGwiXX19"
 
 const (
-	BROKER_URL               = "BROKER_URL"
-	KUBERNETES_API_TOKEN     = "KUBERNETES_API_TOKEN"
+	BROKER_URL           = "BROKER_URL"
+	KUBERNETES_API_TOKEN = "KUBERNETES_API_TOKEN"
+	// This must match a consumer namespace in deploy/cr.yaml
+	TEST_NAMESPACE = "consumer1"
 )
 
 var (
-	envBrokerURL     = os.Getenv(BROKER_URL)
-	envToken         = os.Getenv(KUBERNETES_API_TOKEN)
+	envBrokerURL = os.Getenv(BROKER_URL)
+	envToken     = os.Getenv(KUBERNETES_API_TOKEN)
 )
 
 var (
@@ -50,19 +54,35 @@ func getBrokerDetails() (string, string) {
 	return brokerURL, token
 }
 
-func TestBrokerOperations(t *testing.T) {
-	brokerURL, token  := getBrokerDetails()
+func TestManagedBroker(t *testing.T) {
+	brokerURL, token := getBrokerDetails()
 	if brokerURL == "" || token == "" {
 		t.Fatal(fmt.Sprintf("Please make sure %s and %s are set before running tests.", BROKER_URL, KUBERNETES_API_TOKEN))
 	}
 
-	sbc := brokerClient.NewServiceBrokerClient(brokerURL, token, USER_IDENTITY, true)
+	cCfg := &brokerClient.BrokerClientClientConfig{
+		brokerURL,
+		token,
+		USER_IDENTITY,
+		&tls.Config{InsecureSkipVerify: true},
+	}
+	sbc := brokerClient.NewServiceBrokerClient(cCfg)
 
 	// Test catalog
-	_, sc, err := sbc.Catalog();if err != nil {
-		t.Fatal(fmt.Sprintf("Error getting Catalog: "), err.Description)
+	res, sc, err := sbc.Catalog()
+	if err != nil {
+		message := err.Description
+		if len(message) == 0 {
+			message = res.Status
+		}
+		t.Fatal(fmt.Sprintf("Error getting Catalog: %s", message))
+	}
+	if len(sc.Services) != 4 {
+		t.Fatal("There should be 4 managed services")
 	}
 
 	// Generic broker tests
-	suites.BrokerOperationsSuite(t, sc.Services, sbc, true)
+	for _, svc := range sc.Services {
+		broker.OperationsSuite(t, &testapi.TestCase{svc, TEST_NAMESPACE, true}, cCfg)
+	}
 }

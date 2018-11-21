@@ -198,7 +198,7 @@ type ServiceBrokerError struct {
 	Description  string `json:"description,omitempty"`
 }
 
-func NewUnprocessableEntityError() *ServiceBrokerError{
+func NewAsyncUnprocessableError() *ServiceBrokerError{
 	return &ServiceBrokerError{
 		Error:       "AsyncRequired",
 		Description: "This Service Plan requires client support for asynchronous service operations.",

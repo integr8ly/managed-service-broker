@@ -18,7 +18,7 @@ func getCatalogServicesObj() []*brokerapi.Service {
 
 			},
 			Plans: []brokerapi.ServicePlan{
-				brokerapi.ServicePlan{
+				{
 					Name:        "default-che",
 					ID:          "default-che",
 					Description: "default che plan",

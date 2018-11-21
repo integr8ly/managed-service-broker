@@ -42,6 +42,7 @@ $ oc process -f templates/broker.template.yaml \
  -p IMAGE_ORG=<yourDockerOrg> \
  -p CHE_DASHBOARD_URL=<cheDashBoardUrl> \
  -p LAUNCHER_DASHBOARD_URL=<launcherDashBoardUrl> \
+ -p THREESCALE_DASHBOARD_URL=<3scaleDashBoardUrl> \
  | oc create -f -
 
 # Verify that the broker has been registered correctly and STATUS is 'Ready'
@@ -134,12 +135,17 @@ Setup the managed-service-broker as outlined in [Deploy managed-service-broker](
 ```bash
 # Set env vars for managed-service-broker url and API token.
 
+# Expose a route to the managed service broker
+$ oc expose svc/msb
+$ oc get route msb -o=jsonpath='{.status.ingress[0].host}'
+msb-managed-service-broker.127.0.0.1.nip.io
+
 # Get API token
 $ oc whoami -t
 EkoH4sIC1aTBWRBNeAzYfkMoMc36W2V3nqPigulKK-s
 
 $ export KUBERNETES_API_TOKEN=EkoH4sIC1aTBWRBNeAzYfkMoMc36W2V3nqPigulKK-s
-$ export BROKER_URL=http://msb-managed-service-broker.127.0.0.1.nip.io // Your managed-service-broker route/URL
+$ export BROKER_URL=http://msb-managed-service-broker.127.0.0.1.nip.io // Add protocol: http://....
 
 # If KUBERNETES_CONFIG is not already set.
 export KUBERNETES_CONFIG=~/.kube/config
