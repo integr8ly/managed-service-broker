@@ -59,6 +59,8 @@ objects:
               value: ${CHE_DASHBOARD_URL}
             - name: THREESCALE_DASHBOARD_URL
               value: ${THREESCALE_DASHBOARD_URL}
+            - name: MSB_SERVICES
+              value: ${MSB_SERVICES}
             ports:
             - containerPort: 8080
             readinessProbe:
@@ -182,6 +184,11 @@ parameters:
   - name: NAMESPACE
     description: Namespace of the project that is being deployed to
     value: "managed-service-broker"
+    required: true
+
+  - name: MSB_SERVICES
+    description: services that the MSB will generate service classes for
+    value: "fuse,che,launcher,3scale"
     required: true
 
   - name: IMAGE_ORG
