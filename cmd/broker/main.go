@@ -8,6 +8,7 @@ import (
 	"os/signal"
 	"path"
 	"strconv"
+	"strings"
 	"syscall"
 
 	"github.com/integr8ly/managed-service-broker/pkg/broker"
@@ -80,11 +81,23 @@ func runWithContext(ctx context.Context) error {
 	osClient := openshift.NewClientFactory(cfg)
 
 	ctrlr := controller.CreateController(namespace, k8sClient, osClient)
-
-	ctrlr.RegisterDeployer(fuse.NewDeployer("fuse-deployer"))
-	ctrlr.RegisterDeployer(launcher.NewDeployer("launcher-deployer"))
-	ctrlr.RegisterDeployer(che.NewDeployer("che-deployer"))
-	ctrlr.RegisterDeployer(threescale.NewDeployer("3scale-deployer"))
+	services := os.Getenv("MSB_SERVICES")
+	serviceList := strings.Split(services, ",")
+	if len(serviceList) == 0{
+		return fmt.Errorf("no services defined")
+	}
+	if shouldRegisterService(serviceList, "fuse") {
+		ctrlr.RegisterDeployer(fuse.NewDeployer("fuse-deployer"))
+	}
+	if shouldRegisterService(serviceList, "launcher") {
+		ctrlr.RegisterDeployer(launcher.NewDeployer("launcher-deployer"))
+	}
+	if shouldRegisterService(serviceList, "che") {
+		ctrlr.RegisterDeployer(che.NewDeployer("che-deployer"))
+	}
+	if shouldRegisterService(serviceList, "3scale") {
+		ctrlr.RegisterDeployer(threescale.NewDeployer("3scale-deployer"))
+	}
 	ctrlr.Catalog()
 
 	if options.TLSCert == "" && options.TLSKey == "" {
@@ -107,4 +120,13 @@ func cancelOnInterrupt(ctx context.Context, f context.CancelFunc) {
 			f()
 		}
 	}()
+}
+
+func shouldRegisterService(services []string, serviceName string )bool{
+	for _, s := range services{
+		if strings.ToLower(s) == strings.ToLower(serviceName){
+			return true
+		}
+	}
+	return false
 }
