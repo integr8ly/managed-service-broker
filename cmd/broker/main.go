@@ -124,7 +124,7 @@ func cancelOnInterrupt(ctx context.Context, f context.CancelFunc) {
 
 func shouldRegisterService(services []string, serviceName string )bool{
 	for _, s := range services{
-		if strings.ToLower(s) == strings.ToLower(serviceName){
+		if strings.TrimSpace(strings.ToLower(s)) == strings.ToLower(serviceName){
 			return true
 		}
 	}
