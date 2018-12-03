@@ -59,6 +59,8 @@ objects:
               value: ${CHE_DASHBOARD_URL}
             - name: THREESCALE_DASHBOARD_URL
               value: ${THREESCALE_DASHBOARD_URL}
+            - name: FUSE_ENABLED
+              value: ${FUSE_ENABLED}
             ports:
             - containerPort: 8080
             readinessProbe:
@@ -182,6 +184,11 @@ parameters:
   - name: NAMESPACE
     description: Namespace of the project that is being deployed to
     value: "managed-service-broker"
+    required: true
+
+  - name: FUSE_ENABLED
+    description: whether to show a service class for fuse online
+    value: "true"
     required: true
 
   - name: IMAGE_ORG

@@ -4,6 +4,9 @@ import (
 	"context"
 	"flag"
 	"fmt"
+	"github.com/integr8ly/managed-service-broker/pkg/deploys/che"
+	"github.com/integr8ly/managed-service-broker/pkg/deploys/fuse"
+	"github.com/integr8ly/managed-service-broker/pkg/deploys/launcher"
 	"os"
 	"os/signal"
 	"path"
@@ -14,9 +17,6 @@ import (
 	"github.com/integr8ly/managed-service-broker/pkg/broker/controller"
 	"github.com/integr8ly/managed-service-broker/pkg/broker/server"
 	"github.com/integr8ly/managed-service-broker/pkg/clients/openshift"
-	"github.com/integr8ly/managed-service-broker/pkg/deploys/che"
-	"github.com/integr8ly/managed-service-broker/pkg/deploys/fuse"
-	"github.com/integr8ly/managed-service-broker/pkg/deploys/launcher"
 	"github.com/integr8ly/managed-service-broker/pkg/deploys/threescale"
 	"github.com/operator-framework/operator-sdk/pkg/k8sclient"
 	"github.com/pkg/errors"
@@ -51,6 +51,14 @@ func run() error {
 	return runWithContext(ctx)
 }
 
+const(
+	threeScaleServiceName = "3scale"
+	fuseOnlineServiceName = "fuse"
+	cheServiceName = "che"
+	launcherServiceName = "launcher"
+
+)
+
 func runWithContext(ctx context.Context) error {
 	if flag.Arg(0) == "version" {
 		fmt.Printf("%s/%s\n", path.Base(os.Args[0]), broker.VERSION)
@@ -81,10 +89,20 @@ func runWithContext(ctx context.Context) error {
 
 	ctrlr := controller.CreateController(namespace, k8sClient, osClient)
 
-	ctrlr.RegisterDeployer(fuse.NewDeployer("fuse-deployer"))
-	ctrlr.RegisterDeployer(launcher.NewDeployer("launcher-deployer"))
-	ctrlr.RegisterDeployer(che.NewDeployer("che-deployer"))
-	ctrlr.RegisterDeployer(threescale.NewDeployer("3scale-deployer"))
+
+
+	if shouldRegisterService( fuseOnlineServiceName) {
+		ctrlr.RegisterDeployer(fuse.NewDeployer("fuse-deployer"))
+	}
+	if shouldRegisterService(launcherServiceName) {
+		ctrlr.RegisterDeployer(launcher.NewDeployer("launcher-deployer"))
+	}
+	if shouldRegisterService( cheServiceName) {
+		ctrlr.RegisterDeployer(che.NewDeployer("che-deployer"))
+	}
+	if shouldRegisterService( threeScaleServiceName) {
+		ctrlr.RegisterDeployer(threescale.NewDeployer("3scale-deployer"))
+	}
 	ctrlr.Catalog()
 
 	if options.TLSCert == "" && options.TLSKey == "" {
@@ -107,4 +125,18 @@ func cancelOnInterrupt(ctx context.Context, f context.CancelFunc) {
 			f()
 		}
 	}()
+}
+
+func shouldRegisterService(serviceName string )bool{
+	switch serviceName {
+	case fuseOnlineServiceName:
+		return os.Getenv("FUSE_ENABLED") != "false"
+	case launcherServiceName:
+		return os.Getenv("LAUNCHER_DASHBOARD_URL") != ""
+	case cheServiceName:
+		return os.Getenv("CHE_DASHBOARD_URL") != ""
+	case threeScaleServiceName:
+		return os.Getenv("THREESCALE_DASHBOARD_URL") != ""
+	}
+	return false
 }
