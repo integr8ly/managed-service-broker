@@ -4,20 +4,19 @@ import (
 	"context"
 	"flag"
 	"fmt"
+	"github.com/integr8ly/managed-service-broker/pkg/deploys/che"
+	"github.com/integr8ly/managed-service-broker/pkg/deploys/fuse"
+	"github.com/integr8ly/managed-service-broker/pkg/deploys/launcher"
 	"os"
 	"os/signal"
 	"path"
 	"strconv"
-	"strings"
 	"syscall"
 
 	"github.com/integr8ly/managed-service-broker/pkg/broker"
 	"github.com/integr8ly/managed-service-broker/pkg/broker/controller"
 	"github.com/integr8ly/managed-service-broker/pkg/broker/server"
 	"github.com/integr8ly/managed-service-broker/pkg/clients/openshift"
-	"github.com/integr8ly/managed-service-broker/pkg/deploys/che"
-	"github.com/integr8ly/managed-service-broker/pkg/deploys/fuse"
-	"github.com/integr8ly/managed-service-broker/pkg/deploys/launcher"
 	"github.com/integr8ly/managed-service-broker/pkg/deploys/threescale"
 	"github.com/operator-framework/operator-sdk/pkg/k8sclient"
 	"github.com/pkg/errors"
@@ -52,6 +51,14 @@ func run() error {
 	return runWithContext(ctx)
 }
 
+const(
+	threeScaleServiceName = "3scale"
+	fuseOnlineServiceName = "fuse"
+	cheServiceName = "che"
+	launcherServiceName = "launcher"
+
+)
+
 func runWithContext(ctx context.Context) error {
 	if flag.Arg(0) == "version" {
 		fmt.Printf("%s/%s\n", path.Base(os.Args[0]), broker.VERSION)
@@ -81,21 +88,19 @@ func runWithContext(ctx context.Context) error {
 	osClient := openshift.NewClientFactory(cfg)
 
 	ctrlr := controller.CreateController(namespace, k8sClient, osClient)
-	services := os.Getenv("MSB_SERVICES")
-	serviceList := strings.Split(services, ",")
-	if len(serviceList) == 0{
-		return fmt.Errorf("no services defined")
-	}
-	if shouldRegisterService(serviceList, "fuse") {
+
+
+
+	if shouldRegisterService( fuseOnlineServiceName) {
 		ctrlr.RegisterDeployer(fuse.NewDeployer("fuse-deployer"))
 	}
-	if shouldRegisterService(serviceList, "launcher") {
+	if shouldRegisterService(launcherServiceName) {
 		ctrlr.RegisterDeployer(launcher.NewDeployer("launcher-deployer"))
 	}
-	if shouldRegisterService(serviceList, "che") {
+	if shouldRegisterService( cheServiceName) {
 		ctrlr.RegisterDeployer(che.NewDeployer("che-deployer"))
 	}
-	if shouldRegisterService(serviceList, "3scale") {
+	if shouldRegisterService( threeScaleServiceName) {
 		ctrlr.RegisterDeployer(threescale.NewDeployer("3scale-deployer"))
 	}
 	ctrlr.Catalog()
@@ -122,11 +127,16 @@ func cancelOnInterrupt(ctx context.Context, f context.CancelFunc) {
 	}()
 }
 
-func shouldRegisterService(services []string, serviceName string )bool{
-	for _, s := range services{
-		if strings.TrimSpace(strings.ToLower(s)) == strings.ToLower(serviceName){
-			return true
-		}
+func shouldRegisterService(serviceName string )bool{
+	switch serviceName {
+	case "fuse":
+		return os.Getenv("FUSE_ENABLED") == "true"
+	case "launcher":
+		return os.Getenv("LAUNCHER_DASHBOARD_URL") != ""
+	case "che":
+		return os.Getenv("CHE_DASHBOARD_URL") != ""
+	case "3scale":
+		return os.Getenv("THREESCALE_DASHBOARD_URL") != ""
 	}
 	return false
 }
