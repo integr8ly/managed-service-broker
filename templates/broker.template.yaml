@@ -59,8 +59,8 @@ objects:
               value: ${CHE_DASHBOARD_URL}
             - name: THREESCALE_DASHBOARD_URL
               value: ${THREESCALE_DASHBOARD_URL}
-            - name: MSB_SERVICES
-              value: ${MSB_SERVICES}
+            - name: FUSE_ENABLED
+              value: ${FUSE_ENABLED}
             ports:
             - containerPort: 8080
             readinessProbe:
@@ -186,9 +186,9 @@ parameters:
     value: "managed-service-broker"
     required: true
 
-  - name: MSB_SERVICES
-    description: services that the MSB will generate service classes for
-    value: "fuse,che,launcher,3scale"
+  - name: FUSE_ENABLED
+    description: whether to show a service class for fuse online
+    value: "true"
     required: true
 
   - name: IMAGE_ORG

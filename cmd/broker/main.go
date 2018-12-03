@@ -130,7 +130,7 @@ func cancelOnInterrupt(ctx context.Context, f context.CancelFunc) {
 func shouldRegisterService(serviceName string )bool{
 	switch serviceName {
 	case "fuse":
-		return os.Getenv("FUSE_ENABLED") == "true"
+		return os.Getenv("FUSE_ENABLED") != "false"
 	case "launcher":
 		return os.Getenv("LAUNCHER_DASHBOARD_URL") != ""
 	case "che":
