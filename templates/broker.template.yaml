@@ -59,6 +59,8 @@ objects:
               value: ${CHE_DASHBOARD_URL}
             - name: THREESCALE_DASHBOARD_URL
               value: ${THREESCALE_DASHBOARD_URL}
+            - name: APICURIO_DASHBOARD_URL
+              value: ${APICURIO_DASHBOARD_URL}
             - name: FUSE_ENABLED
               value: ${FUSE_ENABLED}
             ports:
@@ -220,6 +222,10 @@ parameters:
 
   - name: THREESCALE_DASHBOARD_URL
     description: 3Scale dasbhoard url
+    required: true
+
+  - name: APICURIO_DASHBOARD_URL
+    description: APICurio dasbhoard url
     required: true
 
   - name: CA_BUNDLE

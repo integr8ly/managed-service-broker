@@ -7,6 +7,7 @@ import (
 	"github.com/integr8ly/managed-service-broker/pkg/deploys/che"
 	"github.com/integr8ly/managed-service-broker/pkg/deploys/fuse"
 	"github.com/integr8ly/managed-service-broker/pkg/deploys/launcher"
+	"github.com/integr8ly/managed-service-broker/pkg/deploys/apicurio"
 	"os"
 	"os/signal"
 	"path"
@@ -56,7 +57,7 @@ const(
 	fuseOnlineServiceName = "fuse"
 	cheServiceName = "che"
 	launcherServiceName = "launcher"
-
+	apicurioServiceName = "apicurio"
 )
 
 func runWithContext(ctx context.Context) error {
@@ -103,6 +104,9 @@ func runWithContext(ctx context.Context) error {
 	if shouldRegisterService( threeScaleServiceName) {
 		ctrlr.RegisterDeployer(threescale.NewDeployer("3scale-deployer"))
 	}
+	if shouldRegisterService( apicurioServiceName) {
+		ctrlr.RegisterDeployer(apicurio.NewDeployer("apicurio-deployer"))
+	}
 	ctrlr.Catalog()
 
 	if options.TLSCert == "" && options.TLSKey == "" {
@@ -137,6 +141,8 @@ func shouldRegisterService(serviceName string )bool{
 		return os.Getenv("CHE_DASHBOARD_URL") != ""
 	case threeScaleServiceName:
 		return os.Getenv("THREESCALE_DASHBOARD_URL") != ""
+	case apicurioServiceName:
+		return os.Getenv("APICURIO_DASHBOARD_URL") != ""
 	}
 	return false
 }
