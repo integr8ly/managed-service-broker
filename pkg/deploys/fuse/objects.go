@@ -10,7 +10,10 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-const FUSE_IMAGE_STREAMS_NAMESPACE string = "openshift"
+const (
+	FUSE_IMAGE_STREAMS_NAMESPACE string = "openshift"
+	FUSE_OPERATOR_IMAGE_STREAM_NAME string = "fuse-online-operator:1.5"
+)
 
 // Fuse plan
 func getCatalogServicesObj() []*brokerapi.Service {
@@ -301,7 +304,7 @@ func getDeploymentConfigObj() *appsv1.DeploymentConfig {
 						},
 						From: corev1.ObjectReference{
 							Kind:      "ImageStreamTag",
-							Name:      "fuse-online-operator:1.4",
+							Name:      FUSE_OPERATOR_IMAGE_STREAM_NAME,
 							Namespace: FUSE_IMAGE_STREAMS_NAMESPACE,
 						},
 					},
