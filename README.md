@@ -43,6 +43,7 @@ $ oc process -f templates/broker.template.yaml \
  -p CHE_DASHBOARD_URL=<cheDashBoardUrl> \
  -p LAUNCHER_DASHBOARD_URL=<launcherDashBoardUrl> \
  -p THREESCALE_DASHBOARD_URL=<3scaleDashBoardUrl> \
+ -p APICURIO_DASHBOARD_URL=<apiCurioDashBoardUrl> \
  | oc create -f -
 
 # Verify that the broker has been registered correctly and STATUS is 'Ready'
@@ -52,7 +53,8 @@ $ svcat get brokers
 $ oc describe clusterservicebroker managed-service-broker
 ```
 
-__NOTE:__ Che and Launcher do not need to be deployed to deploy the managed-service-broker, `CHE_DASHBOARD_URL` and `LAUNCHER_DASHBOARD_URL` just need to be set to a non-empty value.
+__NOTE:__ The services requiring `X_DASHBOARD_URL` parameters do not need to be installed to run the broker, the parameters just need to be set to a non-empty value to deploy the template.
+
 #### Add syndesis-crd:
 
 ```
