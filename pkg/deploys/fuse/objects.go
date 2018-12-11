@@ -11,7 +11,7 @@ import (
 )
 
 const (
-	FUSE_IMAGE_STREAMS_NAMESPACE string = "openshift"
+	FUSE_IMAGE_STREAMS_NAMESPACE    string = "openshift"
 	FUSE_OPERATOR_IMAGE_STREAM_NAME string = "fuse-online-operator:1.5"
 )
 
