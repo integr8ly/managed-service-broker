@@ -1,27 +1,76 @@
+SHELL = /bin/bash
 TAG = 1.0.4
-DOCKERORG = quay.io/integreatly
-BROKER_IMAGE_NAME = managed-service-broker
+ORG = quay.io/integreatly
+IMAGE = managed-service-broker
+PROJECT = managed-service-broker
 
-.phony: build_and_push
-build_and_push: build_image push
+.PHONY: code/run
+code/run:
+	@KUBERNETES_CONFIG=$(HOME)/.kube/config ./tmp/_output/bin/managed-service-broker --port 8080
 
+.PHONY: code/compile
+code/compile:
+	@CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o ./tmp/_output/bin/$(IMAGE) ./cmd/broker
 
-.phony: push
-push:
-	docker push $(DOCKERORG)/$(BROKER_IMAGE_NAME):$(TAG)
+.PHONY: code/check
+code/check:
+	@diff -u <(echo -n) <(gofmt -d `find . -type f -name '*.go' -not -path "./vendor/*"`)
 
-.phony: build_image
-build_image: build_binary
-	docker build -t $(DOCKERORG)/$(BROKER_IMAGE_NAME):$(TAG) -f ./tmp/build/broker/Dockerfile .
+.PHONY: code/fix
+code/fix:
+	@gofmt -w `find . -type f -name '*.go' -not -path "./vendor/*"`
 
-.phony: build_binary
-build_binary:
-	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o ./tmp/_output/bin/$(BROKER_IMAGE_NAME) ./cmd/broker
+.PHONY: image/build
+image/build: code/compile
+	@docker build -t $(ORG)/$(IMAGE):$(TAG) -f ./tmp/build/broker/Dockerfile .
 
-.phony: run
-run:
-	KUBERNETES_CONFIG=$(HOME)/.kube/config ./tmp/_output/bin/managed-service-broker --port 8080
+.PHONY: image/push
+image/push:
+	@docker push $(ORG)/$(IMAGE):$(TAG)
 
-.phony: integration
-integration:
-	go test ./tests/
+.PHONY: image/build/push
+image/build/push: image/build image/push
+
+.PHONY: test/e2e
+test/e2e:
+	@go test ./tests/
+
+.PHONY: cluster/prepare
+cluster/prepare:
+	@oc new-project $(PROJECT)
+	@oc create -f https://raw.githubusercontent.com/syndesisio/fuse-online-install/1.4.8/resources/fuse-online-image-streams.yml -n openshift
+	@oc create -f https://raw.githubusercontent.com/integr8ly/managed-service-controller/managed-service-controller-v1.0.0/deploy/fuse-image-stream.yaml -n openshift
+	@oc create -f https://raw.githubusercontent.com/syndesisio/syndesis/master/install/operator/deploy/syndesis-crd.yml
+
+.PHONY: cluster/deploy
+cluster/deploy:
+	@oc process -f ./templates/broker.template.yaml \
+      -p IMAGE_TAG=$(TAG) \
+      -p NAMESPACE=$(PROJECT) \
+      -p ROUTE_SUFFIX=127.0.0.1.nip.io  \
+      -p IMAGE_ORG=$(ORG) \
+      -p CHE_DASHBOARD_URL=http://che \
+      -p LAUNCHER_DASHBOARD_URL=http://launcher \
+      -p THREESCALE_DASHBOARD_URL=http://3scale \
+      -p APICURIO_DASHBOARD_URL=http://apicurio \
+      | oc create -f -
+
+.PHONY: cluster/remove/deploy
+cluster/remove/deploy:
+	@oc process -f ./templates/broker.template.yaml \
+      -p IMAGE_TAG=$(TAG) \
+      -p NAMESPACE=$(PROJECT) \
+      -p ROUTE_SUFFIX=127.0.0.1.nip.io  \
+      -p IMAGE_ORG=$(ORG) \
+      -p CHE_DASHBOARD_URL=http://che \
+      -p LAUNCHER_DASHBOARD_URL=http://launcher \
+      -p THREESCALE_DASHBOARD_URL=http://3scale \
+      -p APICURIO_DASHBOARD_URL=http://apicurio \
+      | oc delete -f -
+
+.PHONY: cluster/clean
+cluster/clean:
+	@oc delete -f https://raw.githubusercontent.com/syndesisio/fuse-online-install/1.4.8/resources/fuse-online-image-streams.yml -n openshift
+	@oc delete -f https://raw.githubusercontent.com/integr8ly/managed-service-controller/managed-service-controller-v1.0.0/deploy/fuse-image-stream.yaml -n openshift
+	@oc delete -f https://raw.githubusercontent.com/syndesisio/syndesis/master/install/operator/deploy/syndesis-crd.yml
+	@oc delete namespace $(PROJECT)

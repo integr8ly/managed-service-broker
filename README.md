@@ -16,7 +16,7 @@ $ oc cluster add service-catalog
 #### Building and Pushing the Docker Image
 In order to build and push the image, run the following command:
 ```
-$ make build_and_push DOCKERORG=<yourDockerOrg>
+$ make image/build/push ORG=<yourOrg>
 
 or
 
@@ -32,19 +32,8 @@ This assumes that the [`svcat` command line tool](https://github.com/kubernetes-
 # Login as admin user
 $ oc login -u system:admin
 
-# Switch to a new project
-$ oc new-project <project-name>
-
-# Process the template and create the broker deployment
-$ oc process -f templates/broker.template.yaml \
- -p NAMESPACE=<project-name> \
- -p ROUTE_SUFFIX=<clusterRouteSubDomain> \
- -p IMAGE_ORG=<yourDockerOrg> \
- -p CHE_DASHBOARD_URL=<cheDashBoardUrl> \
- -p LAUNCHER_DASHBOARD_URL=<launcherDashBoardUrl> \
- -p THREESCALE_DASHBOARD_URL=<3scaleDashBoardUrl> \
- -p APICURIO_DASHBOARD_URL=<apiCurioDashBoardUrl> \
- | oc create -f -
+# Setup the cluster and deploy the broker
+$ make cluster/prepare cluster/deploy ORG=<yourOrg>
 
 # Verify that the broker has been registered correctly and STATUS is 'Ready'
 $ svcat get brokers
@@ -53,13 +42,7 @@ $ svcat get brokers
 $ oc describe clusterservicebroker managed-service-broker
 ```
 
-__NOTE:__ The services requiring `X_DASHBOARD_URL` parameters do not need to be installed to run the broker, the parameters just need to be set to a non-empty value to deploy the template.
-
-#### Add syndesis-crd:
-
-```
-$ oc create -f https://raw.githubusercontent.com/syndesisio/syndesis/master/install/operator/deploy/syndesis-crd.yml
-```
+__Note:__ `make cluster/remove/deploy` will remove the deployment and `make cluster/clean` will remove the required setup.
 
 # Local Development (Minishift)
 Guide to building and running the broker locally and connecting it to a minishift VM.
@@ -104,13 +87,13 @@ $ oc patch clusterservicebroker/managed-service-broker --patch '{"spec":{"url": 
 #### Build and run the broker locally:
 
 ```bash
-# Make sure KUBERNETES_CONFIG is set
+# Set KUBERNETES_CONFIG if it is not already set
 # Default location is ~/.kube/config
 $ export KUBERNETES_CONFIG=~/.kube/config
 ```
 
 ```
-$ make build_binary run
+$ make code/compile code/run
 CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o ./tmp/_output/bin/managed-service-broker ./cmd/broker
 KUBERNETES_CONFIG=/home/mnairn/.kube/config ./tmp/_output/bin/managed-service-broker --port 8080
 INFO[0000] Catalog()
@@ -153,7 +136,7 @@ $ export BROKER_URL=http://msb-managed-service-broker.127.0.0.1.nip.io // Add pr
 export KUBERNETES_CONFIG=~/.kube/config
 
 # Run tests
-$ make integration
+$ make test/e2e
 ```
 
 __NOTE:__ If running the test against a [locally running managed-service-broker](#local-development-minishift) the permissions used will be of the user you have logged in with using `oc login`.
