@@ -7,10 +7,10 @@ import (
 	"strings"
 
 	"k8s.io/api/authentication/v1"
-
+	apiErrors "k8s.io/apimachinery/pkg/api/errors"
 	brokerapi "github.com/integr8ly/managed-service-broker/pkg/broker"
+	fuseV1alpha1 "github.com/integr8ly/managed-service-broker/pkg/deploys/fuse/pkg/apis/syndesis/v1alpha1"
 	"github.com/integr8ly/managed-service-broker/pkg/clients/openshift"
-	appsv1 "github.com/openshift/client-go/apps/clientset/versioned/typed/apps/v1"
 	k8sClient "github.com/operator-framework/operator-sdk/pkg/k8sclient"
 	"github.com/operator-framework/operator-sdk/pkg/util/k8sutil"
 	"github.com/pkg/errors"
@@ -20,15 +20,15 @@ import (
 )
 
 type FuseDeployer struct {
-	id string
+	k8sClient kubernetes.Interface
+	osClient  *openshift.ClientFactory
 }
 
-func NewDeployer(id string) *FuseDeployer {
-	return &FuseDeployer{id: id}
-}
-
-func (fd *FuseDeployer) IsForService(serviceID string) bool {
-	return serviceID == "fuse-service-id"
+func NewDeployer(k8sClient kubernetes.Interface, osClient *openshift.ClientFactory) *FuseDeployer {
+	return &FuseDeployer{
+		k8sClient: k8sClient,
+		osClient: osClient,
+    }
 }
 
 func (fd *FuseDeployer) GetCatalogEntries() []*brokerapi.Service {
@@ -36,18 +36,14 @@ func (fd *FuseDeployer) GetCatalogEntries() []*brokerapi.Service {
 	return getCatalogServicesObj()
 }
 
-func (fd *FuseDeployer) GetID() string {
-	return fd.id
-}
-
-func (fd *FuseDeployer) Deploy(instanceID, brokerNamespace string, contextProfile brokerapi.ContextProfile, parameters map[string]interface{}, userInfo v1.UserInfo, k8sclient kubernetes.Interface, osClientFactory *openshift.ClientFactory) (*brokerapi.CreateServiceInstanceResponse, error) {
-	glog.Infof("Deploying fuse from deployer, id: %s", instanceID)
+func (fd *FuseDeployer) Deploy(req *brokerapi.ProvisionRequest, async bool) (*brokerapi.ProvisionResponse, error) {
+	glog.Infof("Deploying fuse from deployer, id: %s", req.InstanceId)
 
 	// Namespace
-	ns, err := k8sclient.CoreV1().Namespaces().Create(getNamespaceObj("fuse-" + instanceID))
+	ns, err := fd.k8sClient.CoreV1().Namespaces().Create(getNamespaceObj("fuse-" + req.InstanceId))
 	if err != nil {
 		glog.Errorf("failed to create fuse namespace: %+v", err)
-		return &brokerapi.CreateServiceInstanceResponse{
+		return &brokerapi.ProvisionResponse{
 			Code: http.StatusInternalServerError,
 		}, errors.Wrap(err, "failed to create namespace for fuse service")
 	}
@@ -55,120 +51,126 @@ func (fd *FuseDeployer) Deploy(instanceID, brokerNamespace string, contextProfil
 	namespace := ns.ObjectMeta.Name
 
 	// ServiceAccount
-	_, err = k8sclient.CoreV1().ServiceAccounts(namespace).Create(getServiceAccountObj())
+	_, err = fd.k8sClient.CoreV1().ServiceAccounts(namespace).Create(getServiceAccountObj())
 	if err != nil {
 		glog.Errorf("failed to create fuse service account: %+v", err)
-		return &brokerapi.CreateServiceInstanceResponse{
+		return &brokerapi.ProvisionResponse{
 			Code: http.StatusInternalServerError,
 		}, errors.Wrap(err, "failed to create service account for fuse service")
 	}
 
 	//Role
-	_, err = k8sclient.RbacV1beta1().Roles(namespace).Create(getRoleObj())
+	_, err = fd.k8sClient.RbacV1beta1().Roles(namespace).Create(getRoleObj())
 	if err != nil {
 		glog.Errorf("failed to create fuse role: %+v", err)
-		return &brokerapi.CreateServiceInstanceResponse{
+		return &brokerapi.ProvisionResponse{
 			Code: http.StatusInternalServerError,
 		}, errors.Wrap(err, "failed to create role for fuse service")
 	}
 
 	// RoleBindings
-	err = fd.createRoleBindings(namespace, userInfo, k8sclient, osClientFactory)
+	err = fd.createRoleBindings(namespace, req.OriginatingUserInfo, fd.k8sClient, fd.osClient)
 	if err != nil {
 		glog.Errorln(err)
-		return &brokerapi.CreateServiceInstanceResponse{
+		return &brokerapi.ProvisionResponse{
 			Code: http.StatusInternalServerError,
 		}, err
 	}
 
 	// DeploymentConfig
-	err = fd.createFuseOperator(namespace, osClientFactory)
+	err = fd.createFuseOperator(namespace, fd.osClient)
 	if err != nil {
 		glog.Errorln(err)
-		return &brokerapi.CreateServiceInstanceResponse{
+		return &brokerapi.ProvisionResponse{
 			Code: http.StatusInternalServerError,
 		}, err
 	}
 
 	// Fuse custom resource
-	dashboardURL, err := fd.createFuseCustomResource(namespace, brokerNamespace, contextProfile.Namespace, k8sclient, userInfo.Username, parameters)
-	if err != nil {
+	frt := fd.createFuseCustomResourceTemplate(namespace, req.ContextProfile.Namespace, req.OriginatingUserInfo.Username, req.Parameters)
+	if err := fd.createFuseCustomResource(namespace, frt); err != nil {
 		glog.Errorln(err)
-		return &brokerapi.CreateServiceInstanceResponse{
+		return &brokerapi.ProvisionResponse{
 			Code: http.StatusInternalServerError,
 		}, err
 	}
 
-	return &brokerapi.CreateServiceInstanceResponse{
+	return &brokerapi.ProvisionResponse{
 		Code:         http.StatusAccepted,
-		DashboardURL: dashboardURL,
+		DashboardURL: "https://" + frt.Spec.RouteHostName,
+		Operation:    "deploy",
 	}, nil
 }
 
-func (fd *FuseDeployer) RemoveDeploy(serviceInstanceId string, namespace string, k8sclient kubernetes.Interface) error {
-	ns := "fuse-" + serviceInstanceId
-	err := k8sclient.CoreV1().Namespaces().Delete(ns, &metav1.DeleteOptions{})
+func (fd *FuseDeployer) RemoveDeploy(req *brokerapi.DeprovisionRequest, async bool) (*brokerapi.DeprovisionResponse, error){
+	ns := "fuse-" + req.InstanceId
+	err := fd.k8sClient.CoreV1().Namespaces().Delete(ns, &metav1.DeleteOptions{})
 	if err != nil && !strings.Contains(err.Error(), "not found") {
 		glog.Errorf("failed to delete %s namespace: %+v", ns, err)
-		return errors.Wrap(err, fmt.Sprintf("failed to delete namespace %s", ns))
+		return &brokerapi.DeprovisionResponse{}, errors.Wrap(err, fmt.Sprintf("failed to delete namespace %s", ns))
 	} else if err != nil && strings.Contains(err.Error(), "not found") {
 		glog.Infof("fuse namespace already deleted")
 	}
-	return nil
+	return &brokerapi.DeprovisionResponse{Operation: "remove"}, nil
 }
 
-// LastOperation should only return an error if it was unable to check the status, not if the status is failed, when status is failed, set that in the Response object
-func (fd *FuseDeployer) LastOperation(instanceID string, k8sclient kubernetes.Interface, osclient *openshift.ClientFactory, operation string) (*brokerapi.LastOperationResponse, error) {
-	glog.Infof("Getting last operation for %s", instanceID)
-	namespace := "fuse-" + instanceID
-	switch operation {
+// ServiceInstanceLastOperation should only return an error if it was unable to check the status, not if the status is failed, when status is failed, set that in the Response object
+func (fd *FuseDeployer) ServiceInstanceLastOperation(req *brokerapi.LastOperationRequest) (*brokerapi.LastOperationResponse, error) {
+	glog.Infof("Getting last operation for service %s", req.InstanceId)
+
+	namespace := "fuse-" + req.InstanceId
+	switch req.Operation {
 	case "deploy":
-		podsToWatch := []string{"syndesis-oauthproxy", "syndesis-server", "syndesis-ui"}
-		dcClient, err := osclient.AppsClient()
-		if err != nil {
-			glog.Errorf("failed to create an openshift deployment config client: %+v", err)
+		fr, err := getFuse(namespace); if err != nil {
+			return nil, err
+		}
+		if fr == nil {
+			return nil, apiErrors.NewNotFound(fuseV1alpha1.SchemeGroupResource, req.InstanceId)
+		}
+
+		if fr.Status.Phase == fuseV1alpha1.SyndesisPhaseStartupFailed {
 			return &brokerapi.LastOperationResponse{
 				State:       brokerapi.StateFailed,
-				Description: "Failed to create an openshift deployment config client",
+				Description: fr.Status.Description,
 			}, nil
 		}
 
-		for _, v := range podsToWatch {
-			state, description, err := fd.getPodStatus(v, namespace, dcClient)
-			if state != brokerapi.StateSucceeded {
-				return &brokerapi.LastOperationResponse{
-					State:       state,
-					Description: description,
-				}, err
-			}
-		}
-
-		return &brokerapi.LastOperationResponse{
-			State:       brokerapi.StateSucceeded,
-			Description: "fuse deployed successfully",
-		}, nil
-	case "remove":
-		_, err := k8sclient.CoreV1().Namespaces().Get(namespace, metav1.GetOptions{})
-		if err != nil && strings.Contains(err.Error(), "not found") {
+		if fr.Status.Phase == fuseV1alpha1.SyndesisPhaseInstalled {
 			return &brokerapi.LastOperationResponse{
 				State:       brokerapi.StateSucceeded,
-				Description: "fuse removed successfully",
+				Description: fr.Status.Description,
 			}, nil
-		} else if err != nil {
-			//any error getting namespace outside of "not found"
-			return &brokerapi.LastOperationResponse{
-				State:       brokerapi.StateInProgress,
-				Description: "failed to find namespace",
-			}, errors.Wrap(err, "could not find namespace")
 		}
+
 		return &brokerapi.LastOperationResponse{
-			State:       brokerapi.StateInProgress,
-			Description: "fuse removal in progress",
+			State: brokerapi.StateInProgress,
+			Description: "fuse is deploying",
+		}, nil
+
+	case "remove":
+		_, err := fd.k8sClient.CoreV1().Namespaces().Get(namespace, metav1.GetOptions{})
+		if err != nil && apiErrors.IsNotFound(err){
+			return &brokerapi.LastOperationResponse{
+				State:       brokerapi.StateSucceeded,
+				Description: "Fuse has been deleted",
+			}, nil
+		}
+
+		return &brokerapi.LastOperationResponse{
+			State: brokerapi.StateInProgress,
+			Description: "fr is deleting",
 		}, nil
 	default:
+		fr, err := getFuse(namespace); if err != nil {
+			return nil, err
+		}
+		if fr == nil {
+			return nil, apiErrors.NewNotFound(fuseV1alpha1.SchemeGroupResource, req.InstanceId)
+		}
+
 		return &brokerapi.LastOperationResponse{
 			State:       brokerapi.StateFailed,
-			Description: "unknown operation: " + operation,
+			Description: "unknown operation: " + req.Operation,
 		}, nil
 	}
 }
@@ -223,29 +225,34 @@ func (fd *FuseDeployer) createFuseOperator(namespace string, osClientFactory *op
 	return nil
 }
 
-func (fd *FuseDeployer) createFuseCustomResource(namespace, brokerNamespace, userNamespace string, k8sclient kubernetes.Interface, userID string, parameters map[string]interface{}) (string, error) {
-	fuseClient, _, err := k8sClient.GetResourceClient("syndesis.io/v1alpha1", "Syndesis", namespace)
-	if err != nil {
-		return "", errors.Wrap(err, "failed to create fuse client")
-	}
-
+// Create the fuse custom resource template
+func (fd *FuseDeployer) createFuseCustomResourceTemplate(namespace, userNamespace, userID string, parameters map[string]interface{}) *fuseV1alpha1.Syndesis {
 	integrationsLimit := 0
 	if parameters["limit"] != nil {
 		integrationsLimit = int(parameters["limit"].(float64))
 	}
 
 	fuseObj := getFuseObj(namespace, userNamespace, integrationsLimit)
+	fuseDashboardURL := fd.getRouteHostname(namespace)
+	fuseObj.Spec.RouteHostName = fuseDashboardURL
 	fuseObj.Annotations["syndesis.io/created-by"] = userID
 
-	fuseDashboardURL := fd.getRouteHostname(namespace)
+	return fuseObj
+}
 
-	fuseObj.Spec.RouteHostName = fuseDashboardURL
-	_, err = fuseClient.Create(k8sutil.UnstructuredFromRuntimeObject(fuseObj))
+// Create the fuse custom resource
+func (fd *FuseDeployer) createFuseCustomResource(namespace string, fr *fuseV1alpha1.Syndesis) error {
+	fuseClient, _, err := k8sClient.GetResourceClient("syndesis.io/v1alpha1", "Syndesis", namespace)
 	if err != nil {
-		return "", errors.Wrap(err, "failed to create a fuse custom resource")
+		return err
 	}
 
-	return "https://" + fuseDashboardURL, nil
+	_, err = fuseClient.Create(k8sutil.UnstructuredFromRuntimeObject(fr))
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 // Get route hostname for fuse
@@ -258,20 +265,26 @@ func (fd *FuseDeployer) getRouteHostname(namespace string) string {
 	return routeHostname
 }
 
-func (fd *FuseDeployer) getPodStatus(podName, namespace string, dcClient *appsv1.AppsV1Client) (string, string, error) {
-	pod, err := dcClient.DeploymentConfigs(namespace).Get(podName, metav1.GetOptions{})
+
+// Get fuse resource in namespace
+func getFuse(ns string) (*fuseV1alpha1.Syndesis, error) {
+	fuseClient, _, err := k8sClient.GetResourceClient("syndesis.io/v1alpha1", "Syndesis", ns)
 	if err != nil {
-		glog.Errorf("Failed to get status of %s: %+v", podName, err)
-		return brokerapi.StateFailed,
-			"Failed to get status of " + podName,
-			errors.Wrap(err, "failed to get status of "+podName)
+		return nil, err
 	}
 
-	for _, v := range pod.Status.Conditions {
-		if v.Type == "Ready" && v.Status == "False" {
-			return brokerapi.StateInProgress, v.Message, nil
-		}
+	u, err := fuseClient.List(metav1.ListOptions{})
+	if err != nil {
+		return nil, err
+	}
+	fl := fuseV1alpha1.NewSyndesisList()
+	if err := k8sutil.RuntimeObjectIntoRuntimeObject(u, fl); err != nil {
+		return nil, errors.Wrap(err, "failed to get the fuse resources")
 	}
 
-	return brokerapi.StateSucceeded, "", nil
+	for _, f := range fl.Items {
+		return &f, nil
+	}
+
+	return nil, nil
 }

@@ -5,22 +5,13 @@ import (
 	"os"
 
 	brokerapi "github.com/integr8ly/managed-service-broker/pkg/broker"
-	"github.com/integr8ly/managed-service-broker/pkg/clients/openshift"
 	glog "github.com/sirupsen/logrus"
-	"k8s.io/api/authentication/v1"
-	"k8s.io/client-go/kubernetes"
 )
 
-type ThreeScaleDeployer struct {
-	id string
-}
+type ThreeScaleDeployer struct {}
 
-func NewDeployer(id string) *ThreeScaleDeployer {
-	return &ThreeScaleDeployer{id: id}
-}
-
-func (fd *ThreeScaleDeployer) IsForService(serviceID string) bool {
-	return serviceID == "3scale-service-id"
+func NewDeployer() *ThreeScaleDeployer {
+	return &ThreeScaleDeployer{}
 }
 
 func (fd *ThreeScaleDeployer) GetCatalogEntries() []*brokerapi.Service {
@@ -28,27 +19,24 @@ func (fd *ThreeScaleDeployer) GetCatalogEntries() []*brokerapi.Service {
 	return getCatalogServicesObj()
 }
 
-func (fd *ThreeScaleDeployer) GetID() string {
-	return fd.id
-}
-
-func (fd *ThreeScaleDeployer) Deploy(instanceID, brokerNamespace string, contextProfile brokerapi.ContextProfile, parameters map[string]interface{}, userInfo v1.UserInfo, k8sclient kubernetes.Interface, osClientFactory *openshift.ClientFactory) (*brokerapi.CreateServiceInstanceResponse, error) {
-	glog.Infof("Deploying 3scale from deployer, id: %s", instanceID)
+func (fd *ThreeScaleDeployer) Deploy(req *brokerapi.ProvisionRequest, async bool) (*brokerapi.ProvisionResponse, error) {
+	glog.Infof("Deploying 3scale from deployer, id: %s", req.InstanceId)
 
 	dashboardUrl := os.Getenv("THREESCALE_DASHBOARD_URL")
 
-	return &brokerapi.CreateServiceInstanceResponse{
+	return &brokerapi.ProvisionResponse{
 		Code:         http.StatusAccepted,
 		DashboardURL: dashboardUrl,
+		Operation:    "deploy",
 	}, nil
 }
 
-func (fd *ThreeScaleDeployer) RemoveDeploy(serviceInstanceId string, namespace string, k8sclient kubernetes.Interface) error {
-	return nil
+func (fd *ThreeScaleDeployer) RemoveDeploy(req *brokerapi.DeprovisionRequest, async bool) (*brokerapi.DeprovisionResponse, error) {
+	return  &brokerapi.DeprovisionResponse{Operation: "remove"}, nil
 }
 
-func (fd *ThreeScaleDeployer) LastOperation(instanceID string, k8sclient kubernetes.Interface, osclient *openshift.ClientFactory, operation string) (*brokerapi.LastOperationResponse, error) {
-	glog.Infof("Getting last operation for %s", instanceID)
+func (fd *ThreeScaleDeployer) ServiceInstanceLastOperation(req *brokerapi.LastOperationRequest) (*brokerapi.LastOperationResponse, error) {
+	glog.Infof("Getting last operation for %s", req.InstanceId)
 
 	return &brokerapi.LastOperationResponse{
 		State:       brokerapi.StateSucceeded,

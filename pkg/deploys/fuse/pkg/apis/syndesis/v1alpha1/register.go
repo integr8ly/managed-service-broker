@@ -18,6 +18,7 @@ var (
 	AddToScheme   = SchemeBuilder.AddToScheme
 	// SchemeGroupVersion is the group version used to register these objects.
 	SchemeGroupVersion = schema.GroupVersion{Group: groupName, Version: version}
+	SchemeGroupResource = schema.GroupResource{Group: groupName, Resource: NewSyndesis().Kind}
 )
 
 func init() {

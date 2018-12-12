@@ -17,15 +17,11 @@ limitations under the License.
 package controller
 
 import (
-	"errors"
 	"fmt"
 	"sync"
 
-	"k8s.io/api/authentication/v1"
-
 	"net/http"
 
-	"github.com/integr8ly/managed-service-broker/pkg/broker"
 	brokerapi "github.com/integr8ly/managed-service-broker/pkg/broker"
 	"github.com/integr8ly/managed-service-broker/pkg/clients/openshift"
 	glog "github.com/sirupsen/logrus"
@@ -36,26 +32,22 @@ import (
 //Deployer deploys a service from this broker
 type Deployer interface {
 	GetCatalogEntries() []*brokerapi.Service
-	Deploy(id string, brokerNs string, contextProfile brokerapi.ContextProfile, parameters map[string]interface{}, user v1.UserInfo, k8sclient kubernetes.Interface, osclient *openshift.ClientFactory) (*brokerapi.CreateServiceInstanceResponse, error)
-	LastOperation(instanceID string, k8sclient kubernetes.Interface, osclient *openshift.ClientFactory, operation string) (*brokerapi.LastOperationResponse, error)
-	GetID() string
-	IsForService(serviceID string) bool
-	RemoveDeploy(serviceInstanceId string, namespace string, k8sclient kubernetes.Interface) error
+	Deploy(req *brokerapi.ProvisionRequest, async bool) (*brokerapi.ProvisionResponse, error)
+	ServiceInstanceLastOperation(req *brokerapi.LastOperationRequest) (*brokerapi.LastOperationResponse, error)
+	RemoveDeploy(req *brokerapi.DeprovisionRequest, async bool) (*brokerapi.DeprovisionResponse, error)
 }
 
 // Controller defines the APIs that all controllers are expected to support. Implementations
 // should be concurrency-safe
 type Controller interface {
-	Catalog() (*broker.Catalog, error)
+	Catalog() (*brokerapi.Catalog, error)
 
-	LastOperation(instanceID, serviceID, planID, operation string) (*broker.LastOperationResponse, error)
-	CreateServiceInstance(instanceID string, req *broker.CreateServiceInstanceRequest) (*broker.CreateServiceInstanceResponse, error)
-	RemoveServiceInstance(instanceID, serviceID, planID string, acceptsIncomplete bool) (*broker.DeleteServiceInstanceResponse, error)
+	ServiceInstanceLastOperation(req *brokerapi.LastOperationRequest) (*brokerapi.LastOperationResponse, error)
+	Provision(req *brokerapi.ProvisionRequest, async bool) (*brokerapi.ProvisionResponse, error)
+	Deprovision(req *brokerapi.DeprovisionRequest, async bool) (*brokerapi.DeprovisionResponse, error)
 
-	Bind(instanceID, bindingID string, req *broker.BindingRequest) (*broker.CreateServiceBindingResponse, error)
-	UnBind(instanceID, bindingID, serviceID, planID string) error
-
-	RegisterDeployer(deployer Deployer)
+	Bind(req *brokerapi.BindRequest, async bool) (*brokerapi.BindResponse, error)
+	UnBind(req *brokerapi.UnBindRequest, async bool) (*brokerapi.UnBindResponse, error)
 }
 
 type errNoSuchInstance struct {
@@ -77,31 +69,25 @@ type userProvidedController struct {
 	k8sclient           kubernetes.Interface
 	osClientFactory     *openshift.ClientFactory
 	brokerNS            string
-	registeredDeployers map[string]Deployer
+	deployers           []Deployer
 }
 
 // CreateController creates an instance of a User Provided service broker controller.
-func CreateController(brokerNS string, k8sclient kubernetes.Interface, osClientFactory *openshift.ClientFactory) Controller {
+func CreateController(ds []Deployer) Controller {
 	var instanceMap = make(map[string]*userProvidedServiceInstance)
 	return &userProvidedController{
 		instanceMap:         instanceMap,
-		brokerNS:            brokerNS,
-		k8sclient:           k8sclient,
-		osClientFactory:     osClientFactory,
-		registeredDeployers: map[string]Deployer{},
+		deployers:           ds,
 	}
 }
 
 var services []*brokerapi.Service
 
-func (c *userProvidedController) RegisterDeployer(deployer Deployer) {
-	c.registeredDeployers[deployer.GetID()] = deployer
-}
-
 func (c *userProvidedController) Catalog() (*brokerapi.Catalog, error) {
 	glog.Info("Catalog()")
+
 	services = []*brokerapi.Service{}
-	for _, deployer := range c.registeredDeployers {
+	for _, deployer := range c.deployers {
 		services = append(services, deployer.GetCatalogEntries()...)
 	}
 
@@ -110,61 +96,78 @@ func (c *userProvidedController) Catalog() (*brokerapi.Catalog, error) {
 	}, nil
 }
 
-func (c *userProvidedController) CreateServiceInstance(
-	instanceID string,
-	req *brokerapi.CreateServiceInstanceRequest,
-) (*brokerapi.CreateServiceInstanceResponse, error) {
+func (c *userProvidedController) Provision(req *brokerapi.ProvisionRequest, async bool) (*brokerapi.ProvisionResponse, error) {
 	glog.Infof("Create service instance: %s, user: %s", req.ServiceID, req.OriginatingUserInfo.Username)
-	for _, deployer := range c.registeredDeployers {
-		if deployer.IsForService(req.ServiceID) {
-			response, err := deployer.Deploy(instanceID, c.brokerNS, req.ContextProfile, req.Parameters, req.OriginatingUserInfo, c.k8sclient, c.osClientFactory)
-			response.Operation = "deploy"
-			return response, err
-		}
+
+	deployer := c.getDeployer(req.ServiceID)
+	if deployer != nil {
+		return deployer.Deploy(req, async)
 	}
 
-	return &brokerapi.CreateServiceInstanceResponse{Code: http.StatusInternalServerError}, nil
+	return &brokerapi.ProvisionResponse{Code: http.StatusInternalServerError}, nil
 }
 
-func (c *userProvidedController) LastOperation(instanceID, serviceID, planID, operation string) (*brokerapi.LastOperationResponse, error) {
-	glog.Info("GetServiceInstanceLastOperation()", "operation "+operation, serviceID)
-	for _, deployer := range c.registeredDeployers {
-		if deployer.IsForService(serviceID) {
-			return deployer.LastOperation(instanceID, c.k8sclient, c.osClientFactory, operation)
-		}
+func (c *userProvidedController) ServiceInstanceLastOperation(req *brokerapi.LastOperationRequest) (*brokerapi.LastOperationResponse, error) {
+	glog.Info("ServiceInstanceLastOperation()", "operation "+req.Operation, req.ServiceID)
+
+	deployer := c.getDeployer(req.ServiceID)
+	if deployer != nil {
+		return deployer.ServiceInstanceLastOperation(req)
 	}
 
-	return &brokerapi.LastOperationResponse{State: brokerapi.StateFailed, Description: "Could not find deployer for " + serviceID}, nil
+	return &brokerapi.LastOperationResponse{State: brokerapi.StateFailed, Description: "Could not find deployer for " + req.ServiceID}, nil
 }
 
-func (c *userProvidedController) RemoveServiceInstance(instanceID, serviceID, planID string, acceptsIncomplete bool) (*brokerapi.DeleteServiceInstanceResponse, error) {
-	glog.Info("RemoveServiceInstance()", instanceID)
-	for _, deployer := range c.registeredDeployers {
-		if deployer.IsForService(serviceID) {
-			return &brokerapi.DeleteServiceInstanceResponse{Operation: "remove"}, deployer.RemoveDeploy(instanceID, c.brokerNS, c.k8sclient)
-		}
+func (c *userProvidedController) Deprovision(req *brokerapi.DeprovisionRequest, async bool) (*brokerapi.DeprovisionResponse, error) {
+	glog.Info("Deprovision()", req.InstanceId)
+
+	deployer := c.getDeployer(req.ServiceID)
+	if deployer != nil {
+		glog.Info("RemoveDeploy()", req.InstanceId)
+		return deployer.RemoveDeploy(req, async)
 	}
-	return &brokerapi.DeleteServiceInstanceResponse{Operation: "remove"}, errors.New("could not find deployer to remove: " + serviceID + instanceID)
+
+	return &brokerapi.DeprovisionResponse{}, nil
 }
 
-func (c *userProvidedController) Bind(
-	instanceID,
-	bindingID string,
-	req *brokerapi.BindingRequest,
-) (*brokerapi.CreateServiceBindingResponse, error) {
+func (c *userProvidedController) Bind(req *brokerapi.BindRequest, async bool) (*brokerapi.BindResponse, error) {
 	glog.Info("Bind()")
+
 	c.rwMutex.RLock()
 	defer c.rwMutex.RUnlock()
-	instance, ok := c.instanceMap[instanceID]
+
+	instance, ok := c.instanceMap[req.InstanceId]
 	if !ok {
-		return nil, errNoSuchInstance{instanceID: instanceID}
+		return nil, errNoSuchInstance{instanceID: req.InstanceId}
 	}
+
 	cred := instance.Credential
-	return &brokerapi.CreateServiceBindingResponse{Credentials: *cred}, nil
+	return &brokerapi.BindResponse{Credentials: *cred}, nil
 }
 
-func (c *userProvidedController) UnBind(instanceID, bindingID, serviceID, planID string) error {
+func (c *userProvidedController) UnBind(req *brokerapi.UnBindRequest, async bool) (*brokerapi.UnBindResponse, error) {
 	glog.Info("UnBind()")
 	// Since we don't persist the binding, there's nothing to do here.
+	return nil, nil
+}
+
+
+func (c *userProvidedController) getDeployer(serviceId string) Deployer{
+	for _, d := range c.deployers {
+		if isForService(serviceId, d) {
+			return d
+		}
+	}
+
 	return nil
+}
+
+func isForService(serviceId string, d Deployer) bool {
+	for _, s := range d.GetCatalogEntries() {
+		if s.ID == serviceId {
+			return true
+	    }
+	}
+
+	return false
 }

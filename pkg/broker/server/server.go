@@ -19,12 +19,9 @@ package server
 import (
 	"context"
 	"crypto/tls"
-	"fmt"
 	"net/http"
 	"time"
-
-	"k8s.io/apimachinery/pkg/api/errors"
-
+	apiErrors "k8s.io/apimachinery/pkg/api/errors"
 	brokerapi "github.com/integr8ly/managed-service-broker/pkg/broker"
 	"github.com/integr8ly/managed-service-broker/pkg/broker/controller"
 	"github.com/integr8ly/managed-service-broker/pkg/broker/server/util"
@@ -47,7 +44,7 @@ func createHandler(c controller.Controller) http.Handler {
 	var router = mux.NewRouter()
 
 	router.HandleFunc("/v2/catalog", s.catalog).Methods("GET")
-	router.HandleFunc("/v2/service_instances/{instance_id}/last_operation", s.lastOperation).Methods("GET")
+	router.HandleFunc("/v2/service_instances/{instance_id}/last_operation", s.getServiceInstanceLastOperation).Methods("GET")
 	router.HandleFunc("/v2/service_instances/{instance_id}", s.createServiceInstance).Methods("PUT")
 	router.HandleFunc("/v2/service_instances/{instance_id}", s.removeServiceInstance).Methods("DELETE")
 	router.HandleFunc("/v2/service_instances/{instance_id}/service_bindings/{binding_id}", s.bind).Methods("PUT")
@@ -119,58 +116,77 @@ func (s *server) catalog(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (s *server) lastOperation(w http.ResponseWriter, r *http.Request) {
-	instanceID := mux.Vars(r)["instance_id"]
-	q := r.URL.Query()
-	serviceID := q.Get("service_id")
-	planID := q.Get("plan_id")
-	operation := q.Get("operation")
+func (s *server) getServiceInstanceLastOperation(w http.ResponseWriter, r *http.Request) {
+	var lor brokerapi.LastOperationRequest
+	lor.InstanceId = mux.Vars(r)["instance_id"]
 
-	result, err := s.controller.LastOperation(instanceID, serviceID, planID, operation)
-	if err != nil {
-		util.WriteErrorResponse(w, http.StatusBadRequest, err)
-	} else {
+	if lor.InstanceId == "" {
+		util.WriteErrorResponse(w, http.StatusBadRequest, apiErrors.NewBadRequest("invalid instance_uuid"))
+		return
+	}
+
+	q := r.URL.Query()
+	lor.ServiceID = q.Get("service_id")
+	lor.PlanID = q.Get("plan_id")
+	lor.Operation = q.Get("operation")
+
+	result, err := s.controller.ServiceInstanceLastOperation(&lor);
+        if err == nil {
+		if apiErrors.IsNotFound(err) {
+			glog.Infof("Service Instance %s not found.", lor.InstanceId)
+			util.WriteErrorResponse(w, http.StatusGone, err)
+			return
+		}
 		util.WriteResponse(w, http.StatusOK, result)
+	} else {
+	        glog.Infof("ServiceInstanceLastOperation for %s had status: %s", lor.InstanceId, result.State)
+		util.WriteErrorResponse(w, http.StatusBadRequest, err)
 	}
 }
 
 func (s *server) createServiceInstance(w http.ResponseWriter, r *http.Request) {
-	id := mux.Vars(r)["instance_id"]
-	var req brokerapi.CreateServiceInstanceRequest
-	if err := util.BodyToObject(r, &req); err != nil {
+	var pr brokerapi.ProvisionRequest
+	pr.InstanceId = mux.Vars(r)["instance_id"]
+
+	if pr.InstanceId == "" {
+		util.WriteErrorResponse(w, http.StatusBadRequest, apiErrors.NewBadRequest("invalid instance_uuid"))
+		return
+	}
+
+	if err := util.BodyToObject(r, &pr); err != nil {
 		glog.Errorf("error unmarshalling: %v", err)
 		util.WriteErrorResponse(w, http.StatusBadRequest, err)
 		return
 	}
-	if err := util.GetOriginatingUserInfo(r, &req.OriginatingUserInfo); err != nil {
+	if err := util.GetOriginatingUserInfo(r, &pr.OriginatingUserInfo); err != nil {
 		glog.Errorf("error retrieving originating user info: %v", err)
 		util.WriteErrorResponse(w, http.StatusBadRequest, err)
 	}
 
-	if req.Parameters == nil {
-		req.Parameters = make(map[string]interface{})
+	if pr.Parameters == nil {
+		pr.Parameters = make(map[string]interface{})
 	}
 
 	q := r.URL.Query()
 	async := q.Get("accepts_incomplete") == "true"
 	if async != true {
-		util.WriteResponse(w, http.StatusUnprocessableEntity, brokerapi.NewUnprocessableEntityError())
+		util.WriteResponse(w, http.StatusUnprocessableEntity, brokerapi.NewAsyncUnprocessableError())
 		return
 	}
 
-	serviceID := req.Parameters["service_id"]
+	serviceID := pr.Parameters["service_id"]
 	if serviceID == "" {
-		util.WriteErrorResponse(w, http.StatusBadRequest, errors.NewBadRequest("invalid service_id"))
+		util.WriteErrorResponse(w, http.StatusBadRequest, apiErrors.NewBadRequest("invalid service_id"))
 		return
 	}
 
-	planID := req.Parameters["plan_id"]
+	planID := pr.Parameters["plan_id"]
 	if planID == "" {
-		util.WriteErrorResponse(w, http.StatusBadRequest, errors.NewBadRequest("invalid plan_id"))
+		util.WriteErrorResponse(w, http.StatusBadRequest, apiErrors.NewBadRequest("invalid plan_id"))
 		return
 	}
 
-	result, err := s.controller.CreateServiceInstance(id, &req)
+	result, err := s.controller.Provision(&pr, async)
 	if err != nil {
 		// Should handle:
 		// if the Service Instance already exists error status code 200
@@ -190,42 +206,42 @@ func (s *server) createServiceInstance(w http.ResponseWriter, r *http.Request) {
 func (s *server) removeServiceInstance(w http.ResponseWriter, r *http.Request) {
 	glog.Infof("r: %+v", r)
 
-	instanceID := mux.Vars(r)["instance_id"]
+	var dr brokerapi.DeprovisionRequest
+	dr.InstanceId = mux.Vars(r)["instance_id"]
 
 	q := r.URL.Query()
-	serviceID := q.Get("service_id")
-	planID := q.Get("plan_id")
+	dr.ServiceID = q.Get("service_id")
+	dr.PlanID = q.Get("plan_id")
 	async := q.Get("accepts_incomplete") == "true"
 
-	if instanceID == "" {
-		util.WriteErrorResponse(w, http.StatusBadRequest, errors.NewBadRequest("invalid instance_uuid"))
+	if dr.InstanceId == "" {
+		util.WriteErrorResponse(w, http.StatusBadRequest, apiErrors.NewBadRequest("invalid instance_uuid"))
 		return
 	}
 
-	if serviceID == "" {
-		util.WriteErrorResponse(w, http.StatusBadRequest, errors.NewBadRequest("invalid service_id"))
+	if dr.ServiceID == "" {
+		util.WriteErrorResponse(w, http.StatusBadRequest, apiErrors.NewBadRequest("invalid service_id"))
 		return
 	}
 
-	if planID == "" {
-		util.WriteErrorResponse(w, http.StatusBadRequest, errors.NewBadRequest("invalid plan_id"))
-		return
-	}
-
-	if planID == "" {
-		util.WriteErrorResponse(w, http.StatusBadRequest, errors.NewBadRequest("invalid plan_id"))
+	if dr.PlanID == "" {
+		util.WriteErrorResponse(w, http.StatusBadRequest, apiErrors.NewBadRequest("invalid plan_id"))
 		return
 	}
 
 	if async != true {
-		util.WriteResponse(w, http.StatusUnprocessableEntity, brokerapi.NewUnprocessableEntityError())
+		util.WriteResponse(w, http.StatusUnprocessableEntity, brokerapi.NewAsyncUnprocessableError())
 		return
 	}
 
-	result, err := s.controller.RemoveServiceInstance(instanceID, serviceID, planID, async)
+	result, err := s.controller.Deprovision(&dr, async)
 	if err != nil {
-		// Should handle:
-		// if the Service Instance does not exist status code 410
+		if apiErrors.IsNotFound(err) {
+			glog.Infof("Service Instance %s not found. Ending request.", dr.InstanceId)
+			util.WriteErrorResponse(w, http.StatusGone, err)
+			return
+		}
+
 		util.WriteErrorResponse(w, http.StatusInternalServerError, err)
 		return
 	}
@@ -239,49 +255,79 @@ func (s *server) removeServiceInstance(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *server) bind(w http.ResponseWriter, r *http.Request) {
-	bindingID := mux.Vars(r)["binding_id"]
-	instanceID := mux.Vars(r)["instance_id"]
+	var br brokerapi.BindRequest
+	br.BindingId = mux.Vars(r)["binding_id"]
+	br.InstanceId = mux.Vars(r)["instance_id"]
 
-	glog.Infof("Bind binding_id=%s, instance_id=%s\n", bindingID, instanceID)
+	if br.BindingId == "" {
+		util.WriteErrorResponse(w, http.StatusBadRequest, apiErrors.NewBadRequest("invalid binding_id"))
+		return
+	}
 
-	var req brokerapi.BindingRequest
+	if br.InstanceId == "" {
+		util.WriteErrorResponse(w, http.StatusBadRequest, apiErrors.NewBadRequest("invalid instance_uuid"))
+		return
+	}
 
-	if err := util.BodyToObject(r, &req); err != nil {
+	glog.Infof("Bind binding_id=%s, instance_id=%s\n", br.BindingId, br.InstanceId)
+
+	if err := util.BodyToObject(r, &br); err != nil {
 		glog.Errorf("Failed to unmarshall request: %v", err)
 		util.WriteErrorResponse(w, http.StatusBadRequest, err)
 		return
 	}
 
-	// TODO: Check if parameters are required, if not, this thing below is ok to leave in,
-	// if they are ,they should be checked. Because if no parameters are passed in, this will
-	// fail because req.Parameters is nil.
-	if req.Parameters == nil {
-		req.Parameters = make(map[string]interface{})
+	if br.Parameters == nil {
+		br.Parameters = make(map[string]interface{})
 	}
 
-	// Pass in the instanceId to the template.
-	req.Parameters["instanceId"] = instanceID
+	q := r.URL.Query()
+	async := q.Get("accepts_incomplete") == "true"
 
-	if result, err := s.controller.Bind(instanceID, bindingID, &req); err == nil {
-		util.WriteResponse(w, http.StatusOK, result)
+	result, err := s.controller.Bind(&br, async)
+	if err != nil {
+		util.WriteErrorResponse(w, http.StatusInternalServerError, err)
+		return
+	}
+
+	if async == true {
+		util.WriteResponse(w, http.StatusAccepted, result)
 	} else {
-		util.WriteErrorResponse(w, http.StatusBadRequest, err)
+		util.WriteResponse(w, http.StatusOK, result)
 	}
 }
 
 func (s *server) unBind(w http.ResponseWriter, r *http.Request) {
-	instanceID := mux.Vars(r)["instance_id"]
-	bindingID := mux.Vars(r)["binding_id"]
-	q := r.URL.Query()
-	serviceID := q.Get("service_id")
-	planID := q.Get("plan_id")
-	glog.Infof("UnBind: Service instance guid: %s:%s", bindingID, instanceID)
+	var ubr brokerapi.UnBindRequest
+	ubr.InstanceId = mux.Vars(r)["instance_id"]
+	ubr.BindingId = mux.Vars(r)["binding_id"]
 
-	if err := s.controller.UnBind(instanceID, bindingID, serviceID, planID); err == nil {
-		w.WriteHeader(http.StatusOK)
-		w.Header().Set("Content-Type", "application/json")
-		fmt.Fprint(w, "{}") //id)
+	if ubr.BindingId == "" {
+		util.WriteErrorResponse(w, http.StatusBadRequest, apiErrors.NewBadRequest("invalid binding_id"))
+		return
+	}
+
+	if ubr.InstanceId == "" {
+		util.WriteErrorResponse(w, http.StatusBadRequest, apiErrors.NewBadRequest("invalid instance_uuid"))
+		return
+	}
+
+	q := r.URL.Query()
+	ubr.ServiceID = q.Get("service_id")
+	ubr.PlanID = q.Get("plan_id")
+	async := q.Get("accepts_incomplete") == "true"
+
+	glog.Infof("UnBind: Service instance guid: %s:%s", ubr.BindingId, ubr.InstanceId)
+
+	result, err := s.controller.UnBind(&ubr, async)
+	if err != nil {
+		util.WriteErrorResponse(w, http.StatusInternalServerError, err)
+		return
+	}
+
+	if async == true {
+		util.WriteResponse(w, http.StatusAccepted, result)
 	} else {
-		util.WriteErrorResponse(w, http.StatusBadRequest, err)
+		util.WriteResponse(w, http.StatusOK, result)
 	}
 }

@@ -13,7 +13,7 @@ func getCatalogServicesObj() []*brokerapi.Service {
 			Description: "3scale",
 			Metadata:    map[string]string{"serviceName": "3scale", "serviceType": "3scale"},
 			Plans: []brokerapi.ServicePlan{
-				brokerapi.ServicePlan{
+				{
 					Name:        "default-3scale",
 					ID:          "default-3scale",
 					Description: "default 3scale plan",

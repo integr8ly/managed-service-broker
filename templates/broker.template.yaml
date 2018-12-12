@@ -203,7 +203,7 @@ parameters:
 
   - name: IMAGE_TAG
     description: Tag of the broker image
-    value: "1.0.1"
+    value: "1.0.4"
 
   - name: IMAGE_PULL_POLICY
     value: "Always"

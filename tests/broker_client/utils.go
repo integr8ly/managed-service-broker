@@ -1,7 +1,6 @@
 package broker_client
 
 import (
-	"crypto/tls"
 	"net/http"
 	"time"
 )
@@ -12,19 +11,17 @@ func NewServiceBrokerError(err error) *ServiceBrokerError {
 	}
 }
 
-func NewServiceBrokerClient(brokerURL, token, userIdentity string, insecureSkipVerify bool) *ServiceBrokerClient{
-	sbc := &ServiceBrokerClient {
+func NewServiceBrokerClient(cCfg *BrokerClientClientConfig) *ServiceBrokerClient {
+	sbc := &ServiceBrokerClient{
 		HttpClient: &http.Client{
 			Timeout: time.Second * 10,
 			Transport: &http.Transport{
-				TLSClientConfig: &tls.Config{
-					InsecureSkipVerify: insecureSkipVerify,
-				},
+				TLSClientConfig: cCfg.TlsCfg,
 			},
 		},
-		BrokerURL: brokerURL,
-		Token:     token,
-		UserIdentity: userIdentity,
+		BrokerURL:    cCfg.BrokerURL,
+		Token:        cCfg.Token,
+		UserIdentity: cCfg.UserIdentity,
 	}
 
 	return sbc
@@ -32,5 +29,4 @@ func NewServiceBrokerClient(brokerURL, token, userIdentity string, insecureSkipV
 
 func isErrorResponse(res *http.Response) bool {
 	return res.StatusCode < http.StatusOK || res.StatusCode > http.StatusNoContent
-
 }
