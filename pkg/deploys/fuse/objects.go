@@ -385,7 +385,7 @@ func getFuseObj(deployNamespace, consumerNamespace string, integrationsLimit int
 			Annotations:  map[string]string{},
 		},
 		Spec: v1alpha1.SyndesisSpec{
-			SarNamespace: consumerNamespace,
+			SarNamespace:         consumerNamespace,
 			ImageStreamNamespace: FUSE_IMAGE_STREAMS_NAMESPACE,
 			Integration: v1alpha1.IntegrationSpec{
 				Limit: &integrationsLimit,

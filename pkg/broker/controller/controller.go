@@ -64,20 +64,20 @@ type userProvidedServiceInstance struct {
 }
 
 type userProvidedController struct {
-	rwMutex             sync.RWMutex
-	instanceMap         map[string]*userProvidedServiceInstance
-	k8sclient           kubernetes.Interface
-	osClientFactory     *openshift.ClientFactory
-	brokerNS            string
-	deployers           []Deployer
+	rwMutex         sync.RWMutex
+	instanceMap     map[string]*userProvidedServiceInstance
+	k8sclient       kubernetes.Interface
+	osClientFactory *openshift.ClientFactory
+	brokerNS        string
+	deployers       []Deployer
 }
 
 // CreateController creates an instance of a User Provided service broker controller.
 func CreateController(ds []Deployer) Controller {
 	var instanceMap = make(map[string]*userProvidedServiceInstance)
 	return &userProvidedController{
-		instanceMap:         instanceMap,
-		deployers:           ds,
+		instanceMap: instanceMap,
+		deployers:   ds,
 	}
 }
 
@@ -151,8 +151,7 @@ func (c *userProvidedController) UnBind(req *brokerapi.UnBindRequest, async bool
 	return nil, nil
 }
 
-
-func (c *userProvidedController) getDeployer(serviceId string) Deployer{
+func (c *userProvidedController) getDeployer(serviceId string) Deployer {
 	for _, d := range c.deployers {
 		if isForService(serviceId, d) {
 			return d
@@ -166,7 +165,7 @@ func isForService(serviceId string, d Deployer) bool {
 	for _, s := range d.GetCatalogEntries() {
 		if s.ID == serviceId {
 			return true
-	    }
+		}
 	}
 
 	return false

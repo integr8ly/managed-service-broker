@@ -8,7 +8,7 @@ import (
 	glog "github.com/sirupsen/logrus"
 )
 
-type LauncherDeployer struct {}
+type LauncherDeployer struct{}
 
 func NewDeployer() *LauncherDeployer {
 	return &LauncherDeployer{}

@@ -8,7 +8,7 @@ import (
 	glog "github.com/sirupsen/logrus"
 )
 
-type CheDeployer struct {}
+type CheDeployer struct{}
 
 func NewDeployer() *CheDeployer {
 	return &CheDeployer{}
