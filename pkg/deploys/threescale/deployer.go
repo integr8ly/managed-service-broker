@@ -8,7 +8,7 @@ import (
 	glog "github.com/sirupsen/logrus"
 )
 
-type ThreeScaleDeployer struct {}
+type ThreeScaleDeployer struct{}
 
 func NewDeployer() *ThreeScaleDeployer {
 	return &ThreeScaleDeployer{}
@@ -32,7 +32,7 @@ func (fd *ThreeScaleDeployer) Deploy(req *brokerapi.ProvisionRequest, async bool
 }
 
 func (fd *ThreeScaleDeployer) RemoveDeploy(req *brokerapi.DeprovisionRequest, async bool) (*brokerapi.DeprovisionResponse, error) {
-	return  &brokerapi.DeprovisionResponse{Operation: "remove"}, nil
+	return &brokerapi.DeprovisionResponse{Operation: "remove"}, nil
 }
 
 func (fd *ThreeScaleDeployer) ServiceInstanceLastOperation(req *brokerapi.LastOperationRequest) (*brokerapi.LastOperationResponse, error) {

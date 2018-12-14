@@ -25,7 +25,7 @@ func NewSyndesisList() *SyndesisList {
 func NewSyndesis() *Syndesis {
 	return &Syndesis{
 		TypeMeta: metav1.TypeMeta{
-			Kind: "Syndesis",
+			Kind:       "Syndesis",
 			APIVersion: "syndesis.io/v1alpha1",
 		},
 	}

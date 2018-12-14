@@ -4,10 +4,10 @@ import (
 	"context"
 	"flag"
 	"fmt"
+	"github.com/integr8ly/managed-service-broker/pkg/deploys/apicurio"
 	"github.com/integr8ly/managed-service-broker/pkg/deploys/che"
 	"github.com/integr8ly/managed-service-broker/pkg/deploys/fuse"
 	"github.com/integr8ly/managed-service-broker/pkg/deploys/launcher"
-	"github.com/integr8ly/managed-service-broker/pkg/deploys/apicurio"
 	"os"
 	"os/signal"
 	"path"
@@ -52,12 +52,12 @@ func run() error {
 	return runWithContext(ctx)
 }
 
-const(
+const (
 	threeScaleServiceName = "3scale"
 	fuseOnlineServiceName = "fuse"
-	cheServiceName = "che"
-	launcherServiceName = "launcher"
-	apicurioServiceName = "apicurio"
+	cheServiceName        = "che"
+	launcherServiceName   = "launcher"
+	apicurioServiceName   = "apicurio"
 )
 
 func runWithContext(ctx context.Context) error {
@@ -87,19 +87,19 @@ func runWithContext(ctx context.Context) error {
 	osClient := openshift.NewClientFactory(cfg)
 
 	deployers := []controller.Deployer{}
-	if shouldRegisterService( fuseOnlineServiceName) {
+	if shouldRegisterService(fuseOnlineServiceName) {
 		deployers = append(deployers, fuse.NewDeployer(k8sClient, osClient))
 	}
 	if shouldRegisterService(launcherServiceName) {
 		deployers = append(deployers, launcher.NewDeployer())
 	}
-	if shouldRegisterService( cheServiceName) {
+	if shouldRegisterService(cheServiceName) {
 		deployers = append(deployers, che.NewDeployer())
 	}
-	if shouldRegisterService( threeScaleServiceName) {
+	if shouldRegisterService(threeScaleServiceName) {
 		deployers = append(deployers, threescale.NewDeployer())
 	}
-	if shouldRegisterService( apicurioServiceName) {
+	if shouldRegisterService(apicurioServiceName) {
 		deployers = append(deployers, apicurio.NewDeployer())
 	}
 	ctrlr := controller.CreateController(deployers)
@@ -128,7 +128,7 @@ func cancelOnInterrupt(ctx context.Context, f context.CancelFunc) {
 	}()
 }
 
-func shouldRegisterService(serviceName string )bool{
+func shouldRegisterService(serviceName string) bool {
 	switch serviceName {
 	case fuseOnlineServiceName:
 		return os.Getenv("FUSE_ENABLED") != "false"

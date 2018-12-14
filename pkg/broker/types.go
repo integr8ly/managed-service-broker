@@ -85,9 +85,9 @@ type ProvisionResponse struct {
 // DeprovisionRequest represents a request to a broker to deprovision an
 // instance of a service
 type DeprovisionRequest struct {
-	InstanceId        string `json:"instance_id,omitempty"`
-	ServiceID         string `json:"service_id"`
-	PlanID            string `json:"plan_id"`
+	InstanceId string `json:"instance_id,omitempty"`
+	ServiceID  string `json:"service_id"`
+	PlanID     string `json:"plan_id"`
 }
 
 // DeprovisionResponse represents the response from a broker after a request
@@ -107,13 +107,13 @@ type LastOperationRequest struct {
 
 // BindRequest represents a bind request to a broker
 type BindRequest struct {
-	InstanceId          string                 `json:"instance_id,omitempty"`
-	BindingId           string                 `json:"binding_id,omitempty"`
-	PlanID              string                 `json:"plan_id,omitempty"`
-	ServiceID           string                 `json:"service_id,omitempty"`
-	Parameters          map[string]interface{} `json:"parameters,omitempty"`
-	ContextProfile      ContextProfile         `json:"context,omitempty"`
-	BindResource        BindResource           `json:"bind_resource,omitempty"`
+	InstanceId     string                 `json:"instance_id,omitempty"`
+	BindingId      string                 `json:"binding_id,omitempty"`
+	PlanID         string                 `json:"plan_id,omitempty"`
+	ServiceID      string                 `json:"service_id,omitempty"`
+	Parameters     map[string]interface{} `json:"parameters,omitempty"`
+	ContextProfile ContextProfile         `json:"context,omitempty"`
+	BindResource   BindResource           `json:"bind_resource,omitempty"`
 }
 
 // Contains data for Platform specific information related to the context in which the service will be used
@@ -124,10 +124,10 @@ type BindResource struct {
 
 // UnBindRequest represents a bind request to a broker
 type UnBindRequest struct {
-	InstanceId          string                 `json:"instance_id,omitempty"`
-	BindingId           string                 `json:"binding_id,omitempty"`
-	PlanID              string                 `json:"plan_id,omitempty"`
-	ServiceID           string                 `json:"service_id,omitempty"`
+	InstanceId string `json:"instance_id,omitempty"`
+	BindingId  string `json:"binding_id,omitempty"`
+	PlanID     string `json:"plan_id,omitempty"`
+	ServiceID  string `json:"service_id,omitempty"`
 }
 
 // LastOperationResponse represents the broker response with the state of a discrete action
@@ -169,7 +169,7 @@ type BindResponse struct {
 
 // UnBindResponse represents a response to a service UnBind request
 type UnBindResponse struct {
-	Operation   string     `json:"operation,omitempty"`
+	Operation string `json:"operation,omitempty"`
 }
 
 // Credential represents connection details, username, and password that are
@@ -216,11 +216,11 @@ type Catalog struct {
 }
 
 type ServiceBrokerError struct {
-	Error        string `json:"error,omitempty"`
-	Description  string `json:"description,omitempty"`
+	Error       string `json:"error,omitempty"`
+	Description string `json:"description,omitempty"`
 }
 
-func NewAsyncUnprocessableError() *ServiceBrokerError{
+func NewAsyncUnprocessableError() *ServiceBrokerError {
 	return &ServiceBrokerError{
 		Error:       "AsyncRequired",
 		Description: "This Service Plan requires client support for asynchronous service operations.",

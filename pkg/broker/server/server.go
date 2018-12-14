@@ -19,12 +19,12 @@ package server
 import (
 	"context"
 	"crypto/tls"
-	"net/http"
-	"time"
-	apiErrors "k8s.io/apimachinery/pkg/api/errors"
 	brokerapi "github.com/integr8ly/managed-service-broker/pkg/broker"
 	"github.com/integr8ly/managed-service-broker/pkg/broker/controller"
 	"github.com/integr8ly/managed-service-broker/pkg/broker/server/util"
+	apiErrors "k8s.io/apimachinery/pkg/api/errors"
+	"net/http"
+	"time"
 
 	"github.com/gorilla/mux"
 	glog "github.com/sirupsen/logrus"
@@ -130,8 +130,8 @@ func (s *server) getServiceInstanceLastOperation(w http.ResponseWriter, r *http.
 	lor.PlanID = q.Get("plan_id")
 	lor.Operation = q.Get("operation")
 
-	result, err := s.controller.ServiceInstanceLastOperation(&lor);
-        if err == nil {
+	result, err := s.controller.ServiceInstanceLastOperation(&lor)
+	if err == nil {
 		if apiErrors.IsNotFound(err) {
 			glog.Infof("Service Instance %s not found.", lor.InstanceId)
 			util.WriteErrorResponse(w, http.StatusGone, err)
@@ -139,7 +139,7 @@ func (s *server) getServiceInstanceLastOperation(w http.ResponseWriter, r *http.
 		}
 		util.WriteResponse(w, http.StatusOK, result)
 	} else {
-	        glog.Infof("ServiceInstanceLastOperation for %s had status: %s", lor.InstanceId, result.State)
+		glog.Infof("ServiceInstanceLastOperation for %s had status: %s", lor.InstanceId, result.State)
 		util.WriteErrorResponse(w, http.StatusBadRequest, err)
 	}
 }

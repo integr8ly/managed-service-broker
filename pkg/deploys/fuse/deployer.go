@@ -6,15 +6,15 @@ import (
 	"os"
 	"strings"
 
-	"k8s.io/api/authentication/v1"
-	apiErrors "k8s.io/apimachinery/pkg/api/errors"
 	brokerapi "github.com/integr8ly/managed-service-broker/pkg/broker"
-	fuseV1alpha1 "github.com/integr8ly/managed-service-broker/pkg/deploys/fuse/pkg/apis/syndesis/v1alpha1"
 	"github.com/integr8ly/managed-service-broker/pkg/clients/openshift"
+	fuseV1alpha1 "github.com/integr8ly/managed-service-broker/pkg/deploys/fuse/pkg/apis/syndesis/v1alpha1"
 	k8sClient "github.com/operator-framework/operator-sdk/pkg/k8sclient"
 	"github.com/operator-framework/operator-sdk/pkg/util/k8sutil"
 	"github.com/pkg/errors"
 	glog "github.com/sirupsen/logrus"
+	"k8s.io/api/authentication/v1"
+	apiErrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 )
@@ -27,8 +27,8 @@ type FuseDeployer struct {
 func NewDeployer(k8sClient kubernetes.Interface, osClient *openshift.ClientFactory) *FuseDeployer {
 	return &FuseDeployer{
 		k8sClient: k8sClient,
-		osClient: osClient,
-    }
+		osClient:  osClient,
+	}
 }
 
 func (fd *FuseDeployer) GetCatalogEntries() []*brokerapi.Service {
@@ -102,7 +102,7 @@ func (fd *FuseDeployer) Deploy(req *brokerapi.ProvisionRequest, async bool) (*br
 	}, nil
 }
 
-func (fd *FuseDeployer) RemoveDeploy(req *brokerapi.DeprovisionRequest, async bool) (*brokerapi.DeprovisionResponse, error){
+func (fd *FuseDeployer) RemoveDeploy(req *brokerapi.DeprovisionRequest, async bool) (*brokerapi.DeprovisionResponse, error) {
 	ns := "fuse-" + req.InstanceId
 	err := fd.k8sClient.CoreV1().Namespaces().Delete(ns, &metav1.DeleteOptions{})
 	if err != nil && !strings.Contains(err.Error(), "not found") {
@@ -121,7 +121,8 @@ func (fd *FuseDeployer) ServiceInstanceLastOperation(req *brokerapi.LastOperatio
 	namespace := "fuse-" + req.InstanceId
 	switch req.Operation {
 	case "deploy":
-		fr, err := getFuse(namespace); if err != nil {
+		fr, err := getFuse(namespace)
+		if err != nil {
 			return nil, err
 		}
 		if fr == nil {
@@ -143,13 +144,13 @@ func (fd *FuseDeployer) ServiceInstanceLastOperation(req *brokerapi.LastOperatio
 		}
 
 		return &brokerapi.LastOperationResponse{
-			State: brokerapi.StateInProgress,
+			State:       brokerapi.StateInProgress,
 			Description: "fuse is deploying",
 		}, nil
 
 	case "remove":
 		_, err := fd.k8sClient.CoreV1().Namespaces().Get(namespace, metav1.GetOptions{})
-		if err != nil && apiErrors.IsNotFound(err){
+		if err != nil && apiErrors.IsNotFound(err) {
 			return &brokerapi.LastOperationResponse{
 				State:       brokerapi.StateSucceeded,
 				Description: "Fuse has been deleted",
@@ -157,11 +158,12 @@ func (fd *FuseDeployer) ServiceInstanceLastOperation(req *brokerapi.LastOperatio
 		}
 
 		return &brokerapi.LastOperationResponse{
-			State: brokerapi.StateInProgress,
+			State:       brokerapi.StateInProgress,
 			Description: "fr is deleting",
 		}, nil
 	default:
-		fr, err := getFuse(namespace); if err != nil {
+		fr, err := getFuse(namespace)
+		if err != nil {
 			return nil, err
 		}
 		if fr == nil {
@@ -264,7 +266,6 @@ func (fd *FuseDeployer) getRouteHostname(namespace string) string {
 	}
 	return routeHostname
 }
-
 
 // Get fuse resource in namespace
 func getFuse(ns string) (*fuseV1alpha1.Syndesis, error) {
