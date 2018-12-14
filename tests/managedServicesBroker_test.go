@@ -7,8 +7,10 @@ import (
 	testapi "github.com/integr8ly/managed-service-broker/tests/apis"
 	brokerClient "github.com/integr8ly/managed-service-broker/tests/broker_client"
 	"github.com/integr8ly/managed-service-broker/tests/test_suites/broker"
+	"github.com/integr8ly/managed-service-broker/tests/test_suites/fuse"
 	"os"
 	"testing"
+	"time"
 )
 
 // https://github.com/openservicebrokerapi/servicebroker/blob/master/spec.md#originating-identity
@@ -85,5 +87,17 @@ func TestManagedBroker(t *testing.T) {
 	// Generic broker tests
 	for _, svc := range sc.Services {
 		broker.OperationsSuite(t, &testapi.TestCase{svc, TEST_NAMESPACE, true}, cCfg)
+	}
+
+	// Wait for cluster to clean up before continuing
+	time.Sleep(time.Second * 5)
+
+	// Shared fuse tests
+	if os.Getenv("MANAGED_SERVICE_NAMESPACE") == "true" {
+		for _, svc := range sc.Services {
+			if svc.Name == fuse.FUSE_NAME {
+				fuse.SharedServiceSuite(t, &testapi.TestCase{svc, TEST_NAMESPACE, true}, cCfg)
+			}
+		}
 	}
 }

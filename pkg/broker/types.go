@@ -2,6 +2,7 @@ package broker
 
 import (
 	"k8s.io/api/authentication/v1"
+	apis "github.com/integr8ly/managed-service-broker/pkg/apis/integreatly/v1alpha1"
 )
 
 // Service represents a service (of which there may be many variants-- "plans")
@@ -59,6 +60,7 @@ type ProvisionRequest struct {
 	Parameters          map[string]interface{} `json:"parameters,omitempty"`
 	ContextProfile      ContextProfile         `json:"context,omitempty"`
 	OriginatingUserInfo v1.UserInfo            `json:"user,omitempty"`
+	Msns                *apis.ManagedServiceNamespace `json:"msns"`
 }
 
 // ContextProfilePlatformKubernetes is a constant to send when the
@@ -88,6 +90,7 @@ type DeprovisionRequest struct {
 	InstanceId        string `json:"instance_id,omitempty"`
 	ServiceID         string `json:"service_id"`
 	PlanID            string `json:"plan_id"`
+	Msns              *apis.ManagedServiceNamespace `json:"msns"`
 }
 
 // DeprovisionResponse represents the response from a broker after a request
@@ -103,6 +106,7 @@ type LastOperationRequest struct {
 	ServiceID  string `json:"service_id,omitempty"`
 	PlanID     string `json:"plan_id,omitempty"`
 	Operation  string `json:"operation,omitempty"`
+	Msns       *apis.ManagedServiceNamespace `json:"msns"`
 }
 
 // BindRequest represents a bind request to a broker
