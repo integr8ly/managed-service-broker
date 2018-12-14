@@ -4,10 +4,6 @@ import (
 	"context"
 	"flag"
 	"fmt"
-	"github.com/integr8ly/managed-service-broker/pkg/deploys/che"
-	"github.com/integr8ly/managed-service-broker/pkg/deploys/fuse"
-	"github.com/integr8ly/managed-service-broker/pkg/deploys/launcher"
-	"github.com/integr8ly/managed-service-broker/pkg/deploys/apicurio"
 	"os"
 	"os/signal"
 	"path"
@@ -18,11 +14,16 @@ import (
 	"github.com/integr8ly/managed-service-broker/pkg/broker/controller"
 	"github.com/integr8ly/managed-service-broker/pkg/broker/server"
 	"github.com/integr8ly/managed-service-broker/pkg/clients/openshift"
+	"github.com/integr8ly/managed-service-broker/pkg/deploys/che"
+	"github.com/integr8ly/managed-service-broker/pkg/deploys/fuse"
+	"github.com/integr8ly/managed-service-broker/pkg/deploys/launcher"
+	"github.com/integr8ly/managed-service-broker/pkg/deploys/apicurio"
 	"github.com/integr8ly/managed-service-broker/pkg/deploys/threescale"
 	"github.com/operator-framework/operator-sdk/pkg/k8sclient"
 	"github.com/pkg/errors"
 	glog "github.com/sirupsen/logrus"
 	"k8s.io/client-go/tools/clientcmd"
+	msns "github.com/integr8ly/managed-service-broker/pkg/clients/msn"
 )
 
 var options struct {
@@ -83,12 +84,20 @@ func runWithContext(ctx context.Context) error {
 	if err != nil {
 		return errors.Wrap(err, "error creating kube client config")
 	}
-	k8sClient := k8sclient.GetKubeClient()
-	osClient := openshift.NewClientFactory(cfg)
+
+	msnsEnabled := os.Getenv("MANAGED_SERVICE_NAMESPACE") == "true"
 
 	deployers := []controller.Deployer{}
 	if shouldRegisterService( fuseOnlineServiceName) {
-		deployers = append(deployers, fuse.NewDeployer(k8sClient, osClient))
+		k8sClient := k8sclient.GetKubeClient()
+		osClient := openshift.NewClientFactory(cfg)
+		var d controller.Deployer
+		if msnsEnabled {
+			d = fuse.NewMsnsDeployer(k8sClient, osClient)
+		} else {
+			d = fuse.NewDeployer(k8sClient, osClient)
+		}
+		deployers = append(deployers, d)
 	}
 	if shouldRegisterService(launcherServiceName) {
 		deployers = append(deployers, launcher.NewDeployer())
@@ -102,8 +111,14 @@ func runWithContext(ctx context.Context) error {
 	if shouldRegisterService( apicurioServiceName) {
 		deployers = append(deployers, apicurio.NewDeployer())
 	}
-	ctrlr := controller.CreateController(deployers)
 
+	var msnsClient *msns.ManagedServiceNamespaceClient = nil
+	if msnsEnabled {
+		msnsClient = &msns.ManagedServiceNamespaceClient{
+			Namespace: os.Getenv("POD_NAMESPACE"),
+		}
+	}
+	ctrlr := controller.CreateController(deployers, msnsClient)
 	ctrlr.Catalog()
 
 	if options.TLSCert == "" && options.TLSKey == "" {

@@ -18,15 +18,14 @@ package controller
 
 import (
 	"fmt"
+	msns "github.com/integr8ly/managed-service-broker/pkg/clients/msn"
 	"sync"
 
 	"net/http"
 
 	brokerapi "github.com/integr8ly/managed-service-broker/pkg/broker"
-	"github.com/integr8ly/managed-service-broker/pkg/clients/openshift"
+	"github.com/operator-framework/operator-sdk/pkg/sdk"
 	glog "github.com/sirupsen/logrus"
-
-	"k8s.io/client-go/kubernetes"
 )
 
 //Deployer deploys a service from this broker
@@ -66,18 +65,17 @@ type userProvidedServiceInstance struct {
 type userProvidedController struct {
 	rwMutex             sync.RWMutex
 	instanceMap         map[string]*userProvidedServiceInstance
-	k8sclient           kubernetes.Interface
-	osClientFactory     *openshift.ClientFactory
-	brokerNS            string
+	msnsClient          *msns.ManagedServiceNamespaceClient
 	deployers           []Deployer
 }
 
 // CreateController creates an instance of a User Provided service broker controller.
-func CreateController(ds []Deployer) Controller {
+func CreateController(ds []Deployer, msnsc *msns.ManagedServiceNamespaceClient) Controller {
 	var instanceMap = make(map[string]*userProvidedServiceInstance)
 	return &userProvidedController{
 		instanceMap:         instanceMap,
 		deployers:           ds,
+		msnsClient:          msnsc,
 	}
 }
 
@@ -85,7 +83,6 @@ var services []*brokerapi.Service
 
 func (c *userProvidedController) Catalog() (*brokerapi.Catalog, error) {
 	glog.Info("Catalog()")
-
 	services = []*brokerapi.Service{}
 	for _, deployer := range c.deployers {
 		services = append(services, deployer.GetCatalogEntries()...)
@@ -99,6 +96,22 @@ func (c *userProvidedController) Catalog() (*brokerapi.Catalog, error) {
 func (c *userProvidedController) Provision(req *brokerapi.ProvisionRequest, async bool) (*brokerapi.ProvisionResponse, error) {
 	glog.Infof("Create service instance: %s, user: %s", req.ServiceID, req.OriginatingUserInfo.Username)
 
+	if c.msnsClient != nil {
+		consumerNamespace := req.ContextProfile.Namespace
+		msns, err := c.msnsClient.GetManagedServiceNamespaceForConsumer(consumerNamespace);
+		if err != nil {
+			glog.Errorf(fmt.Sprintf("failed to get ManagedServiceNamespace for consumer namespace: %s when provisioning service %s", consumerNamespace, req.InstanceId), err)
+			return &brokerapi.ProvisionResponse{Code: http.StatusInternalServerError}, err
+		}
+		msns.SetInstanceNamespace(req.InstanceId, consumerNamespace)
+		if err = sdk.Update(msns); err != nil {
+			glog.Errorf("Error updating ManagedServiceNamespace consumer namespace", err)
+			return &brokerapi.ProvisionResponse{Code: http.StatusInternalServerError}, err
+		}
+
+		req.Msns = msns
+	}
+
 	deployer := c.getDeployer(req.ServiceID)
 	if deployer != nil {
 		return deployer.Deploy(req, async)
@@ -110,9 +123,18 @@ func (c *userProvidedController) Provision(req *brokerapi.ProvisionRequest, asyn
 func (c *userProvidedController) ServiceInstanceLastOperation(req *brokerapi.LastOperationRequest) (*brokerapi.LastOperationResponse, error) {
 	glog.Info("ServiceInstanceLastOperation()", "operation "+req.Operation, req.ServiceID)
 
+	if c.msnsClient != nil {
+		msns, err := c.msnsClient.GetMangedServiceNamespaceForInstance(req.InstanceId); if err != nil {
+			glog.Errorf(fmt.Sprintf("failed to get ManagedServiceNamespace for instance: %s", req.InstanceId), err)
+			return &brokerapi.LastOperationResponse{State: brokerapi.StateFailed}, err
+		}
+
+		req.Msns = msns
+	}
+
 	deployer := c.getDeployer(req.ServiceID)
 	if deployer != nil {
-		return deployer.ServiceInstanceLastOperation(req)
+	   return deployer.ServiceInstanceLastOperation(req)
 	}
 
 	return &brokerapi.LastOperationResponse{State: brokerapi.StateFailed, Description: "Could not find deployer for " + req.ServiceID}, nil
@@ -120,6 +142,15 @@ func (c *userProvidedController) ServiceInstanceLastOperation(req *brokerapi.Las
 
 func (c *userProvidedController) Deprovision(req *brokerapi.DeprovisionRequest, async bool) (*brokerapi.DeprovisionResponse, error) {
 	glog.Info("Deprovision()", req.InstanceId)
+
+	if c.msnsClient != nil {
+		msns, err := c.msnsClient.GetMangedServiceNamespaceForInstance(req.InstanceId); if err != nil {
+			glog.Errorf(fmt.Sprintf("failed to get ManagedServiceNamespace for instance: %s", req.InstanceId), err)
+			return &brokerapi.DeprovisionResponse{}, err
+		}
+
+		req.Msns = msns
+	}
 
 	deployer := c.getDeployer(req.ServiceID)
 	if deployer != nil {
