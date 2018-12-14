@@ -1,0 +1,10 @@
+apiVersion: "integreatly.org/v1alpha1"
+kind: "ManagedServiceNamespace"
+metadata:
+  name: "managed-service-project"
+spec:
+  autoEnabledServiceIntegrations: "true"
+  userId: "admin"
+  consumerNamespaces:
+  - "consumer1"
+  - "consumer2"
