@@ -1,7 +1,8 @@
 SHELL = /bin/bash
-TAG = 1.0.4
-ORG = quay.io/integreatly
+REG = quay.io
+ORG = integreatly
 IMAGE = managed-service-broker
+TAG = 1.0.4
 PROJECT = managed-service-broker
 
 .PHONY: code/run
@@ -22,11 +23,11 @@ code/fix:
 
 .PHONY: image/build
 image/build: code/compile
-	@docker build -t $(ORG)/$(IMAGE):$(TAG) -f ./tmp/build/broker/Dockerfile .
+	@docker build -t $(REG)/$(ORG)/$(IMAGE):$(TAG) -f ./tmp/build/broker/Dockerfile .
 
 .PHONY: image/push
 image/push:
-	@docker push $(ORG)/$(IMAGE):$(TAG)
+	@docker push $(REG)/$(ORG)/$(IMAGE):$(TAG)
 
 .PHONY: image/build/push
 image/build/push: image/build image/push
@@ -48,7 +49,7 @@ cluster/deploy:
       -p IMAGE_TAG=$(TAG) \
       -p NAMESPACE=$(PROJECT) \
       -p ROUTE_SUFFIX=127.0.0.1.nip.io  \
-      -p IMAGE_ORG=$(ORG) \
+      -p IMAGE_ORG=$(REG)/$(ORG) \
       -p CHE_DASHBOARD_URL=http://che \
       -p LAUNCHER_DASHBOARD_URL=http://launcher \
       -p THREESCALE_DASHBOARD_URL=http://3scale \
@@ -61,7 +62,7 @@ cluster/remove/deploy:
       -p IMAGE_TAG=$(TAG) \
       -p NAMESPACE=$(PROJECT) \
       -p ROUTE_SUFFIX=127.0.0.1.nip.io  \
-      -p IMAGE_ORG=$(ORG) \
+      -p IMAGE_ORG=$(REG)/$(ORG) \
       -p CHE_DASHBOARD_URL=http://che \
       -p LAUNCHER_DASHBOARD_URL=http://launcher \
       -p THREESCALE_DASHBOARD_URL=http://3scale \
