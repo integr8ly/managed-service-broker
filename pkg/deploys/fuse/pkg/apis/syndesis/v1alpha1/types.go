@@ -99,6 +99,7 @@ type ComponentsSpec struct {
 	Prometheus PrometheusConfiguration `json:"prometheus,omitempty"`
 	Server     ServerConfiguration     `json:"server,omitempty"`
 	Meta       MetaConfiguration       `json:"meta,omitempty"`
+	Upgrade    UpgradeConfiguration    `json:"upgrade,omitempty"`
 }
 
 type DbConfiguration struct {
@@ -113,11 +114,16 @@ type PrometheusConfiguration struct {
 }
 
 type ServerConfiguration struct {
-	Resources Resources `json:"resources,omitempty"`
+	Resources Resources      `json:"resources,omitempty"`
+	Features  ServerFeatures `json:"features,omitempty"`
 }
 
 type MetaConfiguration struct {
 	Resources ResourcesWithVolume `json:"resources,omitempty"`
+}
+
+type UpgradeConfiguration struct {
+	Resources VolumeOnlyResources `json:"resources,omitempty"`
 }
 
 type Resources struct {
@@ -127,4 +133,12 @@ type Resources struct {
 type ResourcesWithVolume struct {
 	v1.ResourceRequirements `json:",inline,omitempty"`
 	VolumeCapacity          string `json:"volumeCapacity,omitempty"`
+}
+
+type VolumeOnlyResources struct {
+	VolumeCapacity string `json:"volumeCapacity,omitempty"`
+}
+
+type ServerFeatures struct {
+	ExposeVia3Scale bool `json:"exposeVia3Scale,omitempty"`
 }

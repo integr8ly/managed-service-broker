@@ -396,8 +396,12 @@ func getFuseObj(deployNamespace, consumerNamespace string, integrationsLimit int
 			Components: v1alpha1.ComponentsSpec{
 				Db:         v1alpha1.DbConfiguration{},
 				Prometheus: v1alpha1.PrometheusConfiguration{},
-				Server:     v1alpha1.ServerConfiguration{},
-				Meta:       v1alpha1.MetaConfiguration{},
+				Server: v1alpha1.ServerConfiguration{
+					Features: v1alpha1.ServerFeatures{
+						ExposeVia3Scale: true,
+					},
+				},
+				Meta: v1alpha1.MetaConfiguration{},
 			},
 		},
 	}
