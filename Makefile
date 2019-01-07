@@ -2,7 +2,7 @@ SHELL = /bin/bash
 REG = quay.io
 ORG = integreatly
 IMAGE = managed-service-broker
-TAG = 1.0.4
+TAG = master
 PROJECT = managed-service-broker
 
 .PHONY: code/run
