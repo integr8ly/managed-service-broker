@@ -2,7 +2,7 @@ SHELL = /bin/bash
 REG = quay.io
 ORG = integreatly
 IMAGE = managed-service-broker
-TAG = 1.0.4
+TAG = master
 PROJECT = managed-service-broker
 
 .PHONY: code/run
@@ -39,9 +39,9 @@ test/e2e:
 .PHONY: cluster/prepare
 cluster/prepare:
 	@oc new-project $(PROJECT)
-	@oc create -f https://raw.githubusercontent.com/syndesisio/fuse-online-install/1.4.8/resources/fuse-online-image-streams.yml -n openshift
+	@oc create -f https://raw.githubusercontent.com/syndesisio/fuse-online-install/1.5/resources/fuse-online-image-streams.yml -n openshift
 	@oc create -f https://raw.githubusercontent.com/integr8ly/managed-service-controller/managed-service-controller-v1.0.0/deploy/fuse-image-stream.yaml -n openshift
-	@oc create -f https://raw.githubusercontent.com/syndesisio/syndesis/master/install/operator/deploy/syndesis-crd.yml
+	@oc create -f https://raw.githubusercontent.com/syndesisio/fuse-online-install/1.5/resources/syndesis-crd.yml
 
 .PHONY: cluster/deploy
 cluster/deploy:
@@ -71,7 +71,7 @@ cluster/remove/deploy:
 
 .PHONY: cluster/clean
 cluster/clean:
-	@oc delete -f https://raw.githubusercontent.com/syndesisio/fuse-online-install/1.4.8/resources/fuse-online-image-streams.yml -n openshift
+	@oc delete -f https://raw.githubusercontent.com/syndesisio/fuse-online-install/1.5/resources/fuse-online-image-streams.yml -n openshift
 	@oc delete -f https://raw.githubusercontent.com/integr8ly/managed-service-controller/managed-service-controller-v1.0.0/deploy/fuse-image-stream.yaml -n openshift
-	@oc delete -f https://raw.githubusercontent.com/syndesisio/syndesis/master/install/operator/deploy/syndesis-crd.yml
+	@oc delete -f https://raw.githubusercontent.com/syndesisio/fuse-online-install/1.5/resources/syndesis-crd.yml
 	@oc delete namespace $(PROJECT)
