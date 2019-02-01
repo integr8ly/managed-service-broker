@@ -54,6 +54,7 @@ cluster/deploy:
       -p LAUNCHER_DASHBOARD_URL=http://launcher \
       -p THREESCALE_DASHBOARD_URL=http://3scale \
       -p APICURIO_DASHBOARD_URL=http://apicurio \
+      -p MONITORING_KEY=middleware \
       | oc create -f -
 
 .PHONY: cluster/remove/deploy
@@ -67,6 +68,7 @@ cluster/remove/deploy:
       -p LAUNCHER_DASHBOARD_URL=http://launcher \
       -p THREESCALE_DASHBOARD_URL=http://3scale \
       -p APICURIO_DASHBOARD_URL=http://apicurio \
+      -p MONITORING_KEY=middleware \
       | oc delete -f -
 
 .PHONY: cluster/clean

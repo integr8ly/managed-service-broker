@@ -58,10 +58,13 @@ func getCatalogServicesObj() []*brokerapi.Service {
 	}
 }
 
-func getNamespaceObj(id string) *corev1.Namespace {
+func getNamespaceObj(id, mk string) *corev1.Namespace {
 	return &corev1.Namespace{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: id,
+			Labels: map[string]string{
+				"monitoring-key": mk,
+			},
 		},
 	}
 }
