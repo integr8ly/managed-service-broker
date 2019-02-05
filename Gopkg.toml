@@ -16,6 +16,6 @@
   branch = "master"
   # version = "=v0.0.5"
 
-[[constraint]]
+[[override]]
   name = "github.com/kubernetes-incubator/service-catalog"
   version = "v0.1.18"
