@@ -20,14 +20,16 @@ import (
 )
 
 type FuseDeployer struct {
-	k8sClient kubernetes.Interface
-	osClient  *openshift.ClientFactory
+	k8sClient     kubernetes.Interface
+	osClient      *openshift.ClientFactory
+	monitoringKey string
 }
 
-func NewDeployer(k8sClient kubernetes.Interface, osClient *openshift.ClientFactory) *FuseDeployer {
+func NewDeployer(k8sClient kubernetes.Interface, osClient *openshift.ClientFactory, mk string) *FuseDeployer {
 	return &FuseDeployer{
-		k8sClient: k8sClient,
-		osClient:  osClient,
+		k8sClient:     k8sClient,
+		osClient:      osClient,
+		monitoringKey: mk,
 	}
 }
 
@@ -40,7 +42,7 @@ func (fd *FuseDeployer) Deploy(req *brokerapi.ProvisionRequest, async bool) (*br
 	glog.Infof("Deploying fuse from deployer, id: %s", req.InstanceId)
 
 	// Namespace
-	ns, err := fd.k8sClient.CoreV1().Namespaces().Create(getNamespaceObj("fuse-" + req.InstanceId))
+	ns, err := fd.k8sClient.CoreV1().Namespaces().Create(getNamespaceObj("fuse-"+req.InstanceId, fd.monitoringKey))
 	if err != nil {
 		glog.Errorf("failed to create fuse namespace: %+v", err)
 		return &brokerapi.ProvisionResponse{

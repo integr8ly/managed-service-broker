@@ -63,6 +63,8 @@ objects:
               value: ${APICURIO_DASHBOARD_URL}
             - name: FUSE_ENABLED
               value: ${FUSE_ENABLED}
+            - name: MONITORING_KEY
+              value: ${MONITORING_KEY}
             ports:
             - containerPort: 8080
             readinessProbe:
@@ -226,6 +228,10 @@ parameters:
 
   - name: APICURIO_DASHBOARD_URL
     description: APICurio dasbhoard url
+    required: true
+
+  - name: MONITORING_KEY
+    description: This value is applied to fuse namespaces to allow monitoring
     required: true
 
   - name: CA_BUNDLE

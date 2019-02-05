@@ -88,7 +88,7 @@ func runWithContext(ctx context.Context) error {
 
 	deployers := []controller.Deployer{}
 	if shouldRegisterService(fuseOnlineServiceName) {
-		deployers = append(deployers, fuse.NewDeployer(k8sClient, osClient))
+		deployers = append(deployers, fuse.NewDeployer(k8sClient, osClient, os.Getenv("MONITORING_KEY")))
 	}
 	if shouldRegisterService(launcherServiceName) {
 		deployers = append(deployers, launcher.NewDeployer())
