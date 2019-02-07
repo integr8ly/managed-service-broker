@@ -217,20 +217,26 @@
   version = "1.0.0"
 
 [[projects]]
-  digest = "1:8aeb4a73c41fd79a868943af3319dc9472172b21063deff6b4391872139f7728"
+  branch = "release-3.11"
+  digest = "1:bd1c931a49e99acf1bcb34ef6ed5dd14a3a7d16c693cdd5ac2b0ff38c16ef726"
   name = "github.com/openshift/api"
   packages = [
     "apps/v1",
     "authorization/v1",
+    "build/v1",
+    "image/docker10",
+    "image/dockerpre012",
+    "image/v1",
     "pkg/serialization",
     "route/v1",
+    "template/v1",
   ]
   pruneopts = ""
-  revision = "0d921e363e951d89f583292c60d013c318df64dc"
-  version = "v3.9.0"
+  revision = "5ad8479f64f1b60ee9c62ce8ef1fe6638838725e"
 
 [[projects]]
-  digest = "1:7da30d36edabf50fb5bc07f759991589c5ca72e75b3dd50fa58c57d94e96fd15"
+  branch = "release-3.11"
+  digest = "1:9f4ad6a16a8cebfee0b72cf14d55413a256d608f1cbaf7227d730cd6f338c86c"
   name = "github.com/openshift/client-go"
   packages = [
     "apps/clientset/versioned/scheme",
@@ -241,8 +247,7 @@
     "route/clientset/versioned/typed/route/v1",
   ]
   pruneopts = ""
-  revision = "1fa528d3be060e4c7178eb69e76d37cf7e699e3c"
-  version = "v3.9.0"
+  revision = "431ec9a26e5021f35fa41ee9a89842db9bfdb370"
 
 [[projects]]
   branch = "master"
@@ -513,6 +518,17 @@
   pruneopts = ""
   revision = "4cac20de16b951c103aa40c4bafbc8cefdd18a12"
 
+[[projects]]
+  digest = "1:32b66d2ab3e10e0b083fc67641cb50e22534924ff06bdbe3dd428074497e2033"
+  name = "sigs.k8s.io/controller-runtime"
+  packages = [
+    "pkg/client",
+    "pkg/client/apiutil",
+  ]
+  pruneopts = ""
+  revision = "67e28744a963c78a34108c3b52aadbc5e02f4384"
+  version = "v0.1.1"
+
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
@@ -520,6 +536,10 @@
     "github.com/gorilla/mux",
     "github.com/openshift/api/apps/v1",
     "github.com/openshift/api/authorization/v1",
+    "github.com/openshift/api/build/v1",
+    "github.com/openshift/api/image/v1",
+    "github.com/openshift/api/route/v1",
+    "github.com/openshift/api/template/v1",
     "github.com/openshift/client-go/apps/clientset/versioned/typed/apps/v1",
     "github.com/openshift/client-go/authorization/clientset/versioned/typed/authorization/v1",
     "github.com/openshift/client-go/route/clientset/versioned/typed/route/v1",
@@ -527,16 +547,22 @@
     "github.com/operator-framework/operator-sdk/pkg/util/k8sutil",
     "github.com/pkg/errors",
     "github.com/sirupsen/logrus",
+    "gopkg.in/yaml.v2",
     "k8s.io/api/authentication/v1",
     "k8s.io/api/core/v1",
     "k8s.io/api/rbac/v1beta1",
     "k8s.io/apimachinery/pkg/api/errors",
     "k8s.io/apimachinery/pkg/apis/meta/v1",
+    "k8s.io/apimachinery/pkg/apis/meta/v1/unstructured",
     "k8s.io/apimachinery/pkg/runtime",
     "k8s.io/apimachinery/pkg/runtime/schema",
+    "k8s.io/apimachinery/pkg/runtime/serializer",
+    "k8s.io/apimachinery/pkg/util/yaml",
     "k8s.io/client-go/kubernetes",
+    "k8s.io/client-go/kubernetes/scheme",
     "k8s.io/client-go/rest",
     "k8s.io/client-go/tools/clientcmd",
+    "sigs.k8s.io/controller-runtime/pkg/client",
   ]
   solver-name = "gps-cdcl"
   solver-version = 1

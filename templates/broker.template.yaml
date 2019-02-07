@@ -65,6 +65,8 @@ objects:
               value: ${FUSE_ENABLED}
             - name: MONITORING_KEY
               value: ${MONITORING_KEY}
+            - name: FUSE_OPERATOR_RESOURCES_URL
+              value: ${FUSE_OPERATOR_RESOURCES_URL}
             ports:
             - containerPort: 8080
             readinessProbe:
@@ -193,6 +195,11 @@ parameters:
   - name: FUSE_ENABLED
     description: whether to show a service class for fuse online
     value: "true"
+    required: true
+
+  - name: FUSE_OPERATOR_RESOURCES_URL
+    description: Fuse operator template url
+    value: "https://raw.githubusercontent.com/syndesisio/fuse-online-install/1.5/resources/fuse-online-operator.yml"
     required: true
 
   - name: IMAGE_ORG
