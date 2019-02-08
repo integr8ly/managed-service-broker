@@ -1,7 +1,11 @@
 package fuse
 
 import (
+	"context"
 	"fmt"
+	"io"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/util/yaml"
 	"net/http"
 	"os"
 	"strings"
@@ -13,22 +17,27 @@ import (
 	"github.com/operator-framework/operator-sdk/pkg/util/k8sutil"
 	"github.com/pkg/errors"
 	glog "github.com/sirupsen/logrus"
+	yamlv2 "gopkg.in/yaml.v2"
 	"k8s.io/api/authentication/v1"
 	apiErrors "k8s.io/apimachinery/pkg/api/errors"
+	k8errors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 type FuseDeployer struct {
 	k8sClient     kubernetes.Interface
 	osClient      *openshift.ClientFactory
+	client        client.Client
 	monitoringKey string
 }
 
-func NewDeployer(k8sClient kubernetes.Interface, osClient *openshift.ClientFactory, mk string) *FuseDeployer {
+func NewDeployer(k8sClient kubernetes.Interface, osClient *openshift.ClientFactory, client client.Client, mk string) *FuseDeployer {
 	return &FuseDeployer{
 		k8sClient:     k8sClient,
 		osClient:      osClient,
+		client:        client,
 		monitoringKey: mk,
 	}
 }
@@ -52,26 +61,7 @@ func (fd *FuseDeployer) Deploy(req *brokerapi.ProvisionRequest, async bool) (*br
 
 	namespace := ns.ObjectMeta.Name
 
-	// ServiceAccount
-	_, err = fd.k8sClient.CoreV1().ServiceAccounts(namespace).Create(getServiceAccountObj())
-	if err != nil {
-		glog.Errorf("failed to create fuse service account: %+v", err)
-		return &brokerapi.ProvisionResponse{
-			Code: http.StatusInternalServerError,
-		}, errors.Wrap(err, "failed to create service account for fuse service")
-	}
-
-	//Role
-	_, err = fd.k8sClient.RbacV1beta1().Roles(namespace).Create(getRoleObj())
-	if err != nil {
-		glog.Errorf("failed to create fuse role: %+v", err)
-		return &brokerapi.ProvisionResponse{
-			Code: http.StatusInternalServerError,
-		}, errors.Wrap(err, "failed to create role for fuse service")
-	}
-
-	// RoleBindings
-	err = fd.createRoleBindings(namespace, req.OriginatingUserInfo, fd.k8sClient, fd.osClient)
+	err = fd.createOperatorResources(namespace, fd.client)
 	if err != nil {
 		glog.Errorln(err)
 		return &brokerapi.ProvisionResponse{
@@ -79,8 +69,8 @@ func (fd *FuseDeployer) Deploy(req *brokerapi.ProvisionRequest, async bool) (*br
 		}, err
 	}
 
-	// DeploymentConfig
-	err = fd.createFuseOperator(namespace, fd.osClient)
+	//RoleBindings
+	err = fd.createRoleBindings(namespace, req.OriginatingUserInfo, fd.k8sClient, fd.osClient)
 	if err != nil {
 		glog.Errorln(err)
 		return &brokerapi.ProvisionResponse{
@@ -102,6 +92,57 @@ func (fd *FuseDeployer) Deploy(req *brokerapi.ProvisionRequest, async bool) (*br
 		DashboardURL: "https://" + frt.Spec.RouteHostName,
 		Operation:    "deploy",
 	}, nil
+}
+
+func (fd *FuseDeployer) createOperatorResources(namespace string, client client.Client) error {
+	resourcesUrl, exists := os.LookupEnv("FUSE_OPERATOR_RESOURCES_URL")
+	if !exists {
+		return errors.New("FUSE_OPERATOR_RESOURCES_URL environment variable is not set")
+	}
+	glog.Printf("Operator resources url = %v", resourcesUrl)
+
+	var httpClient http.Client
+	resp, err := httpClient.Get(resourcesUrl)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	var resources []runtime.Object
+	dec := yamlv2.NewDecoder(resp.Body)
+	for {
+		var value interface{}
+		err := dec.Decode(&value)
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			return err
+		}
+		yamlData, err := yamlv2.Marshal(value)
+		if err != nil {
+			return err
+		}
+		jsonData, err := yaml.ToJSON(yamlData)
+		if err != nil {
+			return err
+		}
+		resource, err := openshift.LoadKubernetesResource(jsonData, namespace)
+		if err != nil {
+			return err
+		}
+		resources = append(resources, resource)
+	}
+	//ToDo Can we lazy load these resources so we don't need to be doing a http request every time
+
+	for _, resource := range resources {
+		err = client.Create(context.TODO(), resource)
+		if err != nil && !k8errors.IsAlreadyExists(err) {
+			glog.Errorf("failed to create object during provision with kind %v, err: %+v", resource.GetObjectKind().GroupVersionKind().String(), err)
+			return err
+		}
+	}
+	return nil
 }
 
 func (fd *FuseDeployer) RemoveDeploy(req *brokerapi.DeprovisionRequest, async bool) (*brokerapi.DeprovisionResponse, error) {
@@ -187,43 +228,14 @@ func (fd *FuseDeployer) createRoleBindings(namespace string, userInfo v1.UserInf
 		}
 	}
 
-	_, err := k8sclient.RbacV1beta1().RoleBindings(namespace).Create(getInstallRoleBindingObj())
-	if err != nil {
-		return errors.Wrap(err, "failed to create install role binding for fuse service")
-	}
-
 	authClient, err := osClientFactory.AuthClient()
 	if err != nil {
 		return errors.Wrap(err, "failed to create an openshift authorization client")
 	}
 
-	_, err = authClient.RoleBindings(namespace).Create(getViewRoleBindingObj())
-	if err != nil {
-		return errors.Wrap(err, "failed to create view role binding for fuse service")
-	}
-
-	_, err = authClient.RoleBindings(namespace).Create(getEditRoleBindingObj())
-	if err != nil {
-		return errors.Wrap(err, "failed to create edit role binding for fuse service")
-	}
-
 	_, err = authClient.RoleBindings(namespace).Create(getUserViewRoleBindingObj(namespace, userInfo.Username))
 	if err != nil {
 		return errors.Wrap(err, "failed to create user view role binding for fuse service")
-	}
-
-	return nil
-}
-
-func (fd *FuseDeployer) createFuseOperator(namespace string, osClientFactory *openshift.ClientFactory) error {
-	dcClient, err := osClientFactory.AppsClient()
-	if err != nil {
-		return errors.Wrap(err, "failed to create an openshift deployment config client")
-	}
-
-	_, err = dcClient.DeploymentConfigs(namespace).Create(getDeploymentConfigObj())
-	if err != nil {
-		return errors.Wrap(err, "failed to create deployment config for fuse service")
 	}
 
 	return nil

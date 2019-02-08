@@ -23,6 +23,7 @@ import (
 	"github.com/pkg/errors"
 	glog "github.com/sirupsen/logrus"
 	"k8s.io/client-go/tools/clientcmd"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 var options struct {
@@ -86,9 +87,18 @@ func runWithContext(ctx context.Context) error {
 	k8sClient := k8sclient.GetKubeClient()
 	osClient := openshift.NewClientFactory(cfg)
 
+	// Setup Scheme for all resources
+	if err := openshift.AddToScheme(openshift.Scheme); err != nil {
+		return errors.Wrap(err, "error creating openshift scheme")
+	}
+	crClient, err := client.New(cfg, client.Options{Scheme: openshift.Scheme})
+	if err != nil {
+		return errors.Wrap(err, "error creating dynamic controller client")
+	}
+
 	deployers := []controller.Deployer{}
 	if shouldRegisterService(fuseOnlineServiceName) {
-		deployers = append(deployers, fuse.NewDeployer(k8sClient, osClient, os.Getenv("MONITORING_KEY")))
+		deployers = append(deployers, fuse.NewDeployer(k8sClient, osClient, crClient, os.Getenv("MONITORING_KEY")))
 	}
 	if shouldRegisterService(launcherServiceName) {
 		deployers = append(deployers, launcher.NewDeployer())

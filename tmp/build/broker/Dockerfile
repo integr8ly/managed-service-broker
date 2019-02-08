@@ -1,5 +1,6 @@
 FROM alpine:3.6
 
+RUN apk add --no-cache ca-certificates
 RUN adduser -D managed-service
 USER managed-service
 
