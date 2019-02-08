@@ -169,17 +169,23 @@
   version = "1.0.0"
 
 [[projects]]
+  branch = "release-3.11"
   name = "github.com/openshift/api"
   packages = [
     "apps/v1",
     "authorization/v1",
+    "build/v1",
+    "image/docker10",
+    "image/dockerpre012",
+    "image/v1",
     "pkg/serialization",
-    "route/v1"
+    "route/v1",
+    "template/v1"
   ]
-  revision = "0d921e363e951d89f583292c60d013c318df64dc"
-  version = "v3.9.0"
+  revision = "5ad8479f64f1b60ee9c62ce8ef1fe6638838725e"
 
 [[projects]]
+  branch = "release-3.11"
   name = "github.com/openshift/client-go"
   packages = [
     "apps/clientset/versioned/scheme",
@@ -189,8 +195,7 @@
     "route/clientset/versioned/scheme",
     "route/clientset/versioned/typed/route/v1"
   ]
-  revision = "1fa528d3be060e4c7178eb69e76d37cf7e699e3c"
-  version = "v3.9.0"
+  revision = "431ec9a26e5021f35fa41ee9a89842db9bfdb370"
 
 [[projects]]
   branch = "master"
@@ -429,9 +434,18 @@
   packages = ["pkg/common"]
   revision = "4cac20de16b951c103aa40c4bafbc8cefdd18a12"
 
+[[projects]]
+  name = "sigs.k8s.io/controller-runtime"
+  packages = [
+    "pkg/client",
+    "pkg/client/apiutil"
+  ]
+  revision = "67e28744a963c78a34108c3b52aadbc5e02f4384"
+  version = "v0.1.1"
+
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "cd3e7db06f8dded61cdfcae2efd7641ce4cb3a39619a2036935b8fa49e914cd7"
+  inputs-digest = "40716f3cabf603a61ef27bb299c0d9d0093f3403012e98a06ffdcdf1656c50d4"
   solver-name = "gps-cdcl"
   solver-version = 1
