@@ -18,7 +18,7 @@ func getCatalogServicesObj() []*brokerapi.Service {
 			},
 			Plans: []brokerapi.ServicePlan{
 				{
-					Name:        "default-code-ready",
+					Name:        "default-codeready",
 					ID:          "default-codeready",
 					Description: "default Code Ready plan",
 					Free:        true,
