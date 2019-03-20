@@ -7,6 +7,7 @@ import (
 	"github.com/integr8ly/managed-service-broker/pkg/deploys/apicurio"
 	"github.com/integr8ly/managed-service-broker/pkg/deploys/che"
 	"github.com/integr8ly/managed-service-broker/pkg/deploys/fuse"
+	"github.com/integr8ly/managed-service-broker/pkg/deploys/fuse_managed"
 	"github.com/integr8ly/managed-service-broker/pkg/deploys/launcher"
 	"os"
 	"os/signal"
@@ -54,11 +55,12 @@ func run() error {
 }
 
 const (
-	threeScaleServiceName = "3scale"
-	fuseOnlineServiceName = "fuse"
-	cheServiceName        = "che"
-	launcherServiceName   = "launcher"
-	apicurioServiceName   = "apicurio"
+	threeScaleServiceName  = "3scale"
+	fuseOnlineServiceName  = "fuse"
+	cheServiceName         = "che"
+	launcherServiceName    = "launcher"
+	apicurioServiceName    = "apicurio"
+	fuseManagedServiceName = "fuse-managed"
 )
 
 func runWithContext(ctx context.Context) error {
@@ -112,6 +114,9 @@ func runWithContext(ctx context.Context) error {
 	if shouldRegisterService(apicurioServiceName) {
 		deployers = append(deployers, apicurio.NewDeployer())
 	}
+	if shouldRegisterService(fuseManagedServiceName) {
+		deployers = append(deployers, fuse_managed.NewDeployer())
+	}
 	ctrlr := controller.CreateController(deployers)
 
 	ctrlr.Catalog()
@@ -150,6 +155,8 @@ func shouldRegisterService(serviceName string) bool {
 		return os.Getenv("THREESCALE_DASHBOARD_URL") != ""
 	case apicurioServiceName:
 		return os.Getenv("APICURIO_DASHBOARD_URL") != ""
+	case fuseManagedServiceName:
+		return os.Getenv("SHARED_FUSE_DASHBOARD_URL") != ""
 	}
 	return false
 }
