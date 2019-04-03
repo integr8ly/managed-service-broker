@@ -243,6 +243,10 @@ parameters:
     description: Shared fuse dasbhoard url
     required: true
 
+  - name: SSO_URL
+    description: RH-SSO Url
+    required: true
+
   - name: MONITORING_KEY
     description: This value is applied to fuse namespaces to allow monitoring
     required: true
