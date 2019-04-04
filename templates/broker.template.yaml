@@ -69,6 +69,8 @@ objects:
               value: ${FUSE_OPERATOR_RESOURCES_URL}
             - name: SHARED_FUSE_DASHBOARD_URL
               value: ${SHARED_FUSE_DASHBOARD_URL}
+            - name: SSO_URL
+              value: ${SSO_URL}
             ports:
             - containerPort: 8080
             readinessProbe:
@@ -241,6 +243,10 @@ parameters:
 
   - name: SHARED_FUSE_DASHBOARD_URL
     description: Shared fuse dasbhoard url
+    required: true
+
+  - name: SSO_URL
+    description: RH-SSO Url
     required: true
 
   - name: MONITORING_KEY

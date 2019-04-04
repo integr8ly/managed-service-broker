@@ -9,6 +9,7 @@ import (
 	"github.com/integr8ly/managed-service-broker/pkg/deploys/fuse"
 	"github.com/integr8ly/managed-service-broker/pkg/deploys/fuse_managed"
 	"github.com/integr8ly/managed-service-broker/pkg/deploys/launcher"
+	"github.com/integr8ly/managed-service-broker/pkg/deploys/sso"
 	"os"
 	"os/signal"
 	"path"
@@ -61,6 +62,7 @@ const (
 	launcherServiceName    = "launcher"
 	apicurioServiceName    = "apicurio"
 	fuseManagedServiceName = "fuse-managed"
+	rhssoServiceName       = "rhsso"
 )
 
 func runWithContext(ctx context.Context) error {
@@ -117,6 +119,9 @@ func runWithContext(ctx context.Context) error {
 	if shouldRegisterService(fuseManagedServiceName) {
 		deployers = append(deployers, fuse_managed.NewDeployer())
 	}
+	if shouldRegisterService(rhssoServiceName) {
+		deployers = append(deployers, sso.NewDeployer())
+	}
 	ctrlr := controller.CreateController(deployers)
 
 	ctrlr.Catalog()
@@ -157,6 +162,8 @@ func shouldRegisterService(serviceName string) bool {
 		return os.Getenv("APICURIO_DASHBOARD_URL") != ""
 	case fuseManagedServiceName:
 		return os.Getenv("SHARED_FUSE_DASHBOARD_URL") != ""
+	case rhssoServiceName:
+		return os.Getenv("SSO_URL") != ""
 	}
 	return false
 }
