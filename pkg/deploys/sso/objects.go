@@ -14,9 +14,9 @@ func getCatalogServicesObj() []*brokerapi.Service {
 			Metadata:    map[string]string{"serviceName": "rhsso", "serviceType": "rhsso"},
 			Plans: []brokerapi.ServicePlan{
 				{
-					Name:        "default-rhsso-managed",
-					ID:          "default-rhsso-managed",
-					Description: "default rhsso-managed plan",
+					Name:        "default-rhsso",
+					ID:          "default-rhsso",
+					Description: "default rhsso plan",
 					Free:        true,
 					Schemas: &brokerapi.Schemas{
 						ServiceBinding: &brokerapi.ServiceBindingSchema{
