@@ -110,9 +110,9 @@ func (fd *FuseDeployer) Deploy(req *brokerapi.ProvisionRequest, async bool) (*br
 
 // Creates the syndesis pull secret required to pull images from registry.redhat.io
 func (fd *FuseDeployer) createImagePullSecret(userNamespace string) error {
-	operatorNamespace, err := k8sutil.GetWatchNamespace()
-	if err != nil {
-		return err
+	operatorNamespace := os.Getenv("POD_NAMESPACE")
+	if operatorNamespace == "" {
+		return errors.New("POD_NAMESPACE must be set")
 	}
 
 	pullSecret, err := fd.k8sClient.CoreV1().Secrets(operatorNamespace).Get(fusePullSecretName, metav1.GetOptions{})
