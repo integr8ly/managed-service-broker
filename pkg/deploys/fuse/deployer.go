@@ -133,6 +133,7 @@ func (fd *FuseDeployer) createImagePullSecret(userNamespace string) error {
 			APIVersion: "v1",
 			Kind:       "Secret",
 		},
+		Type: "kubernetes.io/dockerconfigjson",
 		Data: pullSecret.Data,
 	})
 
