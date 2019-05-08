@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/yaml"
 	"net/http"
@@ -24,6 +25,11 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+)
+
+const (
+	fusePullSecretName = "syndesis-pull-secret"
+	fusePullSecretKey  = ".dockerconfigjson"
 )
 
 type FuseDeployer struct {
@@ -61,6 +67,14 @@ func (fd *FuseDeployer) Deploy(req *brokerapi.ProvisionRequest, async bool) (*br
 
 	namespace := ns.ObjectMeta.Name
 
+	err = fd.createImagePullSecret(namespace)
+	if err != nil {
+		glog.Errorln(err)
+		return &brokerapi.ProvisionResponse{
+			Code: http.StatusInternalServerError,
+		}, err
+	}
+
 	err = fd.createOperatorResources(namespace, fd.client)
 	if err != nil {
 		glog.Errorln(err)
@@ -92,6 +106,38 @@ func (fd *FuseDeployer) Deploy(req *brokerapi.ProvisionRequest, async bool) (*br
 		DashboardURL: "https://" + frt.Spec.RouteHostName,
 		Operation:    "deploy",
 	}, nil
+}
+
+// Creates the syndesis pull secret required to pull images from registry.redhat.io
+func (fd *FuseDeployer) createImagePullSecret(userNamespace string) error {
+	operatorNamespace := os.Getenv("POD_NAMESPACE")
+	if operatorNamespace == "" {
+		return errors.New("POD_NAMESPACE must be set")
+	}
+
+	pullSecret, err := fd.k8sClient.CoreV1().Secrets(operatorNamespace).Get(fusePullSecretName, metav1.GetOptions{})
+	if err != nil {
+		return err
+	}
+
+	if _, ok := pullSecret.Data[fusePullSecretKey]; !ok {
+		return errors.New(fmt.Sprintf("%s does not contain a key named %s", fusePullSecretName, fusePullSecretKey))
+	}
+
+	_, err = fd.k8sClient.CoreV1().Secrets(userNamespace).Create(&corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: userNamespace,
+			Name:      fusePullSecretName,
+		},
+		TypeMeta: metav1.TypeMeta{
+			APIVersion: "v1",
+			Kind:       "Secret",
+		},
+		Type: "kubernetes.io/dockerconfigjson",
+		Data: pullSecret.Data,
+	})
+
+	return err
 }
 
 func (fd *FuseDeployer) createOperatorResources(namespace string, client client.Client) error {
