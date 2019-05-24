@@ -4,11 +4,12 @@ import (
 	"crypto/tls"
 	"flag"
 	"fmt"
+	"os"
+	"testing"
+
 	testapi "github.com/integr8ly/managed-service-broker/tests/apis"
 	brokerClient "github.com/integr8ly/managed-service-broker/tests/broker_client"
 	"github.com/integr8ly/managed-service-broker/tests/test_suites/broker"
-	"os"
-	"testing"
 )
 
 // https://github.com/openservicebrokerapi/servicebroker/blob/master/spec.md#originating-identity
@@ -34,7 +35,7 @@ const (
 var (
 	envBrokerURL = os.Getenv(BROKER_URL)
 	envToken     = os.Getenv(KUBERNETES_API_TOKEN)
-	numServices  = 5
+	numServices  = 7
 )
 
 var (
@@ -79,7 +80,7 @@ func TestManagedBroker(t *testing.T) {
 		t.Fatal(fmt.Sprintf("Error getting Catalog: %s", message))
 	}
 	if len(sc.Services) != numServices {
-		t.Fatalf("There should be %d managed services", numServices)
+		t.Fatalf("There should be %d managed services, but there are %d of them", numServices, len(sc.Services))
 	}
 
 	// Generic broker tests
