@@ -28,7 +28,7 @@ import (
 )
 
 const (
-	fusePullSecretName = "syndesis-pull-secret"
+	fusePullSecretName = "imagestreamsecret"
 	fusePullSecretKey  = ".dockerconfigjson"
 )
 
