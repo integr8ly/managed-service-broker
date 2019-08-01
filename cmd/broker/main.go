@@ -63,6 +63,7 @@ const (
 	apicurioServiceName    = "apicurio"
 	fuseManagedServiceName = "fuse-managed"
 	rhssoServiceName       = "rhsso"
+	userRHSSOServiceName   = "user-rhsso"
 )
 
 func runWithContext(ctx context.Context) error {
@@ -120,7 +121,10 @@ func runWithContext(ctx context.Context) error {
 		deployers = append(deployers, fuse_managed.NewDeployer())
 	}
 	if shouldRegisterService(rhssoServiceName) {
-		deployers = append(deployers, sso.NewDeployer())
+		deployers = append(deployers, sso.NewClusterDeployer())
+	}
+	if shouldRegisterService(userRHSSOServiceName) {
+		deployers = append(deployers, sso.NewUserDeployer())
 	}
 	ctrlr := controller.CreateController(deployers)
 
@@ -163,7 +167,9 @@ func shouldRegisterService(serviceName string) bool {
 	case fuseManagedServiceName:
 		return os.Getenv("SHARED_FUSE_DASHBOARD_URL") != ""
 	case rhssoServiceName:
-		return os.Getenv("SSO_URL") != ""
+		return os.Getenv(sso.DefaultManagedURLEnv) != ""
+	case userRHSSOServiceName:
+		return os.Getenv(sso.DefaultUserURLEnv) != ""
 	}
 	return false
 }
