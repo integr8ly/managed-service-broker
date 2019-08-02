@@ -8,21 +8,39 @@ import (
 	glog "github.com/sirupsen/logrus"
 )
 
-type RHSSOManagedDeployer struct{}
+const (
+	DefaultManagedURLEnv = "SSO_URL"
+	DefaultUserURLEnv    = "USER_SSO_URL"
+)
 
-func NewDeployer() *RHSSOManagedDeployer {
-	return &RHSSOManagedDeployer{}
+type RHSSODeployer struct {
+	URLEnv                  string
+	CatalogServiceObjGetter func() []*brokerapi.Service
 }
 
-func (fd *RHSSOManagedDeployer) GetCatalogEntries() []*brokerapi.Service {
+func NewClusterDeployer() *RHSSODeployer {
+	return &RHSSODeployer{
+		URLEnv:                  DefaultManagedURLEnv,
+		CatalogServiceObjGetter: getManagedCatalogServicesObj,
+	}
+}
+
+func NewUserDeployer() *RHSSODeployer {
+	return &RHSSODeployer{
+		URLEnv:                  DefaultUserURLEnv,
+		CatalogServiceObjGetter: getUserCatalogServicesObj,
+	}
+}
+
+func (d *RHSSODeployer) GetCatalogEntries() []*brokerapi.Service {
 	glog.Infof("Getting RH-SSO managed catalog entries")
-	return getCatalogServicesObj()
+	return d.CatalogServiceObjGetter()
 }
 
-func (fd *RHSSOManagedDeployer) Deploy(req *brokerapi.ProvisionRequest, async bool) (*brokerapi.ProvisionResponse, error) {
+func (d *RHSSODeployer) Deploy(req *brokerapi.ProvisionRequest, async bool) (*brokerapi.ProvisionResponse, error) {
 	glog.Infof("Deploying RH-SSO from deployer, id: %s", req.InstanceId)
 
-	dashboardUrl := os.Getenv("SSO_URL")
+	dashboardUrl := os.Getenv(d.URLEnv)
 
 	return &brokerapi.ProvisionResponse{
 		Code:         http.StatusAccepted,
@@ -31,11 +49,11 @@ func (fd *RHSSOManagedDeployer) Deploy(req *brokerapi.ProvisionRequest, async bo
 	}, nil
 }
 
-func (fd *RHSSOManagedDeployer) RemoveDeploy(req *brokerapi.DeprovisionRequest, async bool) (*brokerapi.DeprovisionResponse, error) {
+func (d *RHSSODeployer) RemoveDeploy(req *brokerapi.DeprovisionRequest, async bool) (*brokerapi.DeprovisionResponse, error) {
 	return &brokerapi.DeprovisionResponse{Operation: "remove"}, nil
 }
 
-func (fd *RHSSOManagedDeployer) ServiceInstanceLastOperation(req *brokerapi.LastOperationRequest) (*brokerapi.LastOperationResponse, error) {
+func (d *RHSSODeployer) ServiceInstanceLastOperation(req *brokerapi.LastOperationRequest) (*brokerapi.LastOperationResponse, error) {
 	glog.Infof("Getting last operation for %s", req.InstanceId)
 
 	return &brokerapi.LastOperationResponse{
