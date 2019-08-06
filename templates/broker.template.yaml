@@ -71,6 +71,8 @@ objects:
               value: ${SHARED_FUSE_DASHBOARD_URL}
             - name: SSO_URL
               value: ${SSO_URL}
+            - name: USER_SSO_URL
+              value: ${USER_SSO_URL}
             ports:
             - containerPort: 8080
             readinessProbe:
@@ -477,6 +479,10 @@ parameters:
 
   - name: SSO_URL
     description: RH-SSO Url
+    required: true
+
+  - name: USER_SSO_URL
+    description: User RH-SSO Url
     required: true
 
   - name: MONITORING_KEY
