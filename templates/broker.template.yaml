@@ -71,6 +71,8 @@ objects:
               value: ${SHARED_FUSE_DASHBOARD_URL}
             - name: SSO_URL
               value: ${SSO_URL}
+            - name: MDC_DASHBOARD_URL
+              value: ${MDC_DASHBOARD_URL}
             - name: USER_SSO_URL
               value: ${USER_SSO_URL}
             ports:
@@ -484,6 +486,10 @@ parameters:
   - name: USER_SSO_URL
     description: User RH-SSO Url
     required: true
+
+  - name: MDC_DASHBOARD_URL
+    description: Mobile Developer Console url
+    default: ""
 
   - name: MONITORING_KEY
     description: This value is applied to fuse namespaces to allow monitoring

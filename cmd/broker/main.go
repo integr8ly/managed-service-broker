@@ -9,6 +9,7 @@ import (
 	"github.com/integr8ly/managed-service-broker/pkg/deploys/fuse"
 	"github.com/integr8ly/managed-service-broker/pkg/deploys/fuse_managed"
 	"github.com/integr8ly/managed-service-broker/pkg/deploys/launcher"
+	"github.com/integr8ly/managed-service-broker/pkg/deploys/mdc"
 	"github.com/integr8ly/managed-service-broker/pkg/deploys/sso"
 	"os"
 	"os/signal"
@@ -64,6 +65,7 @@ const (
 	fuseManagedServiceName = "fuse-managed"
 	rhssoServiceName       = "rhsso"
 	userRHSSOServiceName   = "user-rhsso"
+	mdcServiceName         = "mdc"
 )
 
 func runWithContext(ctx context.Context) error {
@@ -126,6 +128,9 @@ func runWithContext(ctx context.Context) error {
 	if shouldRegisterService(userRHSSOServiceName) {
 		deployers = append(deployers, sso.NewUserDeployer())
 	}
+	if shouldRegisterService(mdcServiceName) {
+		deployers = append(deployers, mdc.NewDeployer())
+	}
 	ctrlr := controller.CreateController(deployers)
 
 	ctrlr.Catalog()
@@ -170,6 +175,8 @@ func shouldRegisterService(serviceName string) bool {
 		return os.Getenv(sso.DefaultManagedURLEnv) != ""
 	case userRHSSOServiceName:
 		return os.Getenv(sso.DefaultUserURLEnv) != ""
+	case mdcServiceName:
+		return os.Getenv("MDC_DASHBOARD_URL") != ""
 	}
 	return false
 }
