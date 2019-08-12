@@ -35,7 +35,7 @@ const (
 var (
 	envBrokerURL = os.Getenv(BROKER_URL)
 	envToken     = os.Getenv(KUBERNETES_API_TOKEN)
-	numServices  = 7
+	numServices  = 8
 )
 
 var (
