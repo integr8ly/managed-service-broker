@@ -71,8 +71,8 @@ objects:
               value: ${SHARED_FUSE_DASHBOARD_URL}
             - name: SSO_URL
               value: ${SSO_URL}
-            - name: MDC_DASHBOARD_URL
-              value: ${MDC_DASHBOARD_URL}
+            - name: UNIFIEDPUSH_DASHBOARD_URL
+              value: ${UNIFIEDPUSH_DASHBOARD_URL}
             - name: USER_SSO_URL
               value: ${USER_SSO_URL}
             ports:
@@ -487,8 +487,8 @@ parameters:
     description: User RH-SSO Url
     required: true
 
-  - name: MDC_DASHBOARD_URL
-    description: Mobile Developer Console url
+  - name: UNIFIEDPUSH_DASHBOARD_URL
+    description: Unifiedpush Server Console url
     default: ""
 
   - name: MONITORING_KEY
