@@ -4,18 +4,19 @@ import (
 	"context"
 	"flag"
 	"fmt"
-	"github.com/integr8ly/managed-service-broker/pkg/deploys/apicurio"
-	"github.com/integr8ly/managed-service-broker/pkg/deploys/che"
-	"github.com/integr8ly/managed-service-broker/pkg/deploys/fuse"
-	"github.com/integr8ly/managed-service-broker/pkg/deploys/fuse_managed"
-	"github.com/integr8ly/managed-service-broker/pkg/deploys/launcher"
-	"github.com/integr8ly/managed-service-broker/pkg/deploys/mdc"
-	"github.com/integr8ly/managed-service-broker/pkg/deploys/sso"
 	"os"
 	"os/signal"
 	"path"
 	"strconv"
 	"syscall"
+
+	"github.com/integr8ly/managed-service-broker/pkg/deploys/apicurio"
+	"github.com/integr8ly/managed-service-broker/pkg/deploys/che"
+	"github.com/integr8ly/managed-service-broker/pkg/deploys/fuse"
+	"github.com/integr8ly/managed-service-broker/pkg/deploys/fuse_managed"
+	"github.com/integr8ly/managed-service-broker/pkg/deploys/launcher"
+	"github.com/integr8ly/managed-service-broker/pkg/deploys/sso"
+	"github.com/integr8ly/managed-service-broker/pkg/deploys/unifiedpush"
 
 	"github.com/integr8ly/managed-service-broker/pkg/broker"
 	"github.com/integr8ly/managed-service-broker/pkg/broker/controller"
@@ -65,7 +66,7 @@ const (
 	fuseManagedServiceName = "fuse-managed"
 	rhssoServiceName       = "rhsso"
 	userRHSSOServiceName   = "user-rhsso"
-	mdcServiceName         = "mdc"
+	unifiedpushServiceName = "unifiedpush"
 )
 
 func runWithContext(ctx context.Context) error {
@@ -128,8 +129,8 @@ func runWithContext(ctx context.Context) error {
 	if shouldRegisterService(userRHSSOServiceName) {
 		deployers = append(deployers, sso.NewUserDeployer())
 	}
-	if shouldRegisterService(mdcServiceName) {
-		deployers = append(deployers, mdc.NewDeployer())
+	if shouldRegisterService(unifiedpushServiceName) {
+		deployers = append(deployers, unifiedpush.NewDeployer())
 	}
 	ctrlr := controller.CreateController(deployers)
 
@@ -175,8 +176,8 @@ func shouldRegisterService(serviceName string) bool {
 		return os.Getenv(sso.DefaultManagedURLEnv) != ""
 	case userRHSSOServiceName:
 		return os.Getenv(sso.DefaultUserURLEnv) != ""
-	case mdcServiceName:
-		return os.Getenv("MDC_DASHBOARD_URL") != ""
+	case unifiedpushServiceName:
+		return os.Getenv("UNIFIEDPUSH_DASHBOARD_URL") != ""
 	}
 	return false
 }
