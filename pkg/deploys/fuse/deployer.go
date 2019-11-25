@@ -1,14 +1,16 @@
 package fuse
 
 import (
-	"context"
+	"archive/tar"
+	"compress/gzip"
 	"fmt"
 	"io"
+	v1 "k8s.io/api/authentication/v1"
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/util/yaml"
 	"net/http"
 	"os"
+	"os/exec"
+	"path/filepath"
 	"strings"
 
 	brokerapi "github.com/integr8ly/managed-service-broker/pkg/broker"
@@ -18,10 +20,7 @@ import (
 	"github.com/operator-framework/operator-sdk/pkg/util/k8sutil"
 	"github.com/pkg/errors"
 	glog "github.com/sirupsen/logrus"
-	yamlv2 "gopkg.in/yaml.v2"
-	"k8s.io/api/authentication/v1"
 	apiErrors "k8s.io/apimachinery/pkg/api/errors"
-	k8errors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -83,7 +82,6 @@ func (fd *FuseDeployer) Deploy(req *brokerapi.ProvisionRequest, async bool) (*br
 		}, err
 	}
 
-	//RoleBindings
 	err = fd.createRoleBindings(namespace, req.OriginatingUserInfo, fd.k8sClient, fd.osClient)
 	if err != nil {
 		glog.Errorln(err)
@@ -147,46 +145,19 @@ func (fd *FuseDeployer) createOperatorResources(namespace string, client client.
 	}
 	glog.Printf("Operator resources url = %v", resourcesUrl)
 
-	var httpClient http.Client
-	resp, err := httpClient.Get(resourcesUrl)
-	if err != nil {
+	destUrl := "/tmp"
+	destBin := fmt.Sprintf("%s/syndesis-operator", destUrl)
+	if _, err := os.Stat(destBin); os.IsNotExist(err) || err != nil {
+		glog.Infof("downloading fuse online binary from %s, to %s", resourcesUrl, destUrl)
+		if err := downloadSyndesisBinary(resourcesUrl, destUrl); err != nil {
+			glog.Infof("failed to download fuse online binary")
+			return err
+		}
+	}
+
+	if _, err := exec.Command(destBin, "install", "operator", "--wait", "-n", namespace).Output(); err != nil {
+		glog.Infof("failed to install fuse online operator in namespace %s", namespace)
 		return err
-	}
-	defer resp.Body.Close()
-
-	var resources []runtime.Object
-	dec := yamlv2.NewDecoder(resp.Body)
-	for {
-		var value interface{}
-		err := dec.Decode(&value)
-		if err == io.EOF {
-			break
-		}
-		if err != nil {
-			return err
-		}
-		yamlData, err := yamlv2.Marshal(value)
-		if err != nil {
-			return err
-		}
-		jsonData, err := yaml.ToJSON(yamlData)
-		if err != nil {
-			return err
-		}
-		resource, err := openshift.LoadKubernetesResource(jsonData, namespace)
-		if err != nil {
-			return err
-		}
-		resources = append(resources, resource)
-	}
-	//ToDo Can we lazy load these resources so we don't need to be doing a http request every time
-
-	for _, resource := range resources {
-		err = client.Create(context.TODO(), resource)
-		if err != nil && !k8errors.IsAlreadyExists(err) {
-			glog.Errorf("failed to create object during provision with kind %v, err: %+v", resource.GetObjectKind().GroupVersionKind().String(), err)
-			return err
-		}
 	}
 	return nil
 }
@@ -267,23 +238,14 @@ func (fd *FuseDeployer) ServiceInstanceLastOperation(req *brokerapi.LastOperatio
 }
 
 func (fd *FuseDeployer) createRoleBindings(namespace string, userInfo v1.UserInfo, k8sclient kubernetes.Interface, osClientFactory *openshift.ClientFactory) error {
-	for _, sysRoleBinding := range getSystemRoleBindings(namespace) {
-		_, err := k8sclient.RbacV1beta1().RoleBindings(namespace).Create(&sysRoleBinding)
-		if err != nil && !strings.Contains(err.Error(), "already exists") {
-			return errors.Wrapf(err, "failed to create rolebinding for %s", &sysRoleBinding.ObjectMeta.Name)
-		}
-	}
-
 	authClient, err := osClientFactory.AuthClient()
 	if err != nil {
 		return errors.Wrap(err, "failed to create an openshift authorization client")
 	}
-
 	_, err = authClient.RoleBindings(namespace).Create(getUserViewRoleBindingObj(namespace, userInfo.Username))
 	if err != nil {
 		return errors.Wrap(err, "failed to create user view role binding for fuse service")
 	}
-
 	return nil
 }
 
@@ -348,4 +310,84 @@ func getFuse(ns string) (*fuseV1alpha1.Syndesis, error) {
 	}
 
 	return nil, nil
+}
+
+func downloadSyndesisBinary(srcUrl, destUrl string) error {
+	resp, err := http.Get(srcUrl)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+	if err := untar(destUrl, resp.Body); err != nil {
+		return err
+	}
+	if err := os.Chmod(fmt.Sprintf("%s/syndesis-operator", destUrl), 755); err != nil {
+		return err
+	}
+	return nil
+}
+
+func untar(dst string, r io.Reader) error {
+
+	gzr, err := gzip.NewReader(r)
+	if err != nil {
+		return err
+	}
+	defer gzr.Close()
+
+	tr := tar.NewReader(gzr)
+
+	for {
+		header, err := tr.Next()
+
+		switch {
+
+		// if no more files are found return
+		case err == io.EOF:
+			return nil
+
+		// return any other error
+		case err != nil:
+			return err
+
+		// if the header is nil, just skip it (not sure how this happens)
+		case header == nil:
+			continue
+		}
+
+		// the target location where the dir/file should be created
+		target := filepath.Join(dst, header.Name)
+
+		// the following switch could also be done using fi.Mode(), not sure if there
+		// a benefit of using one vs. the other.
+		// fi := header.FileInfo()
+
+		// check the file type
+		switch header.Typeflag {
+
+		// if its a dir and it doesn't exist create it
+		case tar.TypeDir:
+			if _, err := os.Stat(target); err != nil {
+				if err := os.MkdirAll(target, 0755); err != nil {
+					return err
+				}
+			}
+
+		// if it's a file create it
+		case tar.TypeReg:
+			f, err := os.OpenFile(target, os.O_CREATE|os.O_RDWR, os.FileMode(header.Mode))
+			if err != nil {
+				return err
+			}
+
+			// copy over contents
+			if _, err := io.Copy(f, tr); err != nil {
+				return err
+			}
+
+			// manually close here after each file operation; defering would cause each file close
+			// to wait until all operations have completed.
+			f.Close()
+		}
+	}
 }
