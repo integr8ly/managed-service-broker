@@ -5,7 +5,6 @@ import (
 	"github.com/integr8ly/managed-service-broker/pkg/deploys/fuse/pkg/apis/syndesis/v1alpha1"
 	authv1 "github.com/openshift/api/authorization/v1"
 	corev1 "k8s.io/api/core/v1"
-	rbacv1beta1 "k8s.io/api/rbac/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -91,63 +90,6 @@ func getUserViewRoleBindingObj(namespace, username string) *authv1.RoleBinding {
 	}
 }
 
-// System specific role bindings
-func getSystemRoleBindings(namespace string) []rbacv1beta1.RoleBinding {
-	return []rbacv1beta1.RoleBinding{
-		{
-			ObjectMeta: metav1.ObjectMeta{
-				Name: "system:deployers",
-			},
-			Subjects: []rbacv1beta1.Subject{
-				{
-					Kind:      "ServiceAccount",
-					Name:      "deployer",
-					Namespace: namespace,
-				},
-			},
-			RoleRef: rbacv1beta1.RoleRef{
-				Kind:     "ClusterRole",
-				Name:     "system:deployer",
-				APIGroup: "rbac.authorization.k8s.io",
-			},
-		},
-		{
-			ObjectMeta: metav1.ObjectMeta{
-				Name: "system:image-builders",
-			},
-			Subjects: []rbacv1beta1.Subject{
-				{
-					Kind:      "ServiceAccount",
-					Name:      "builder",
-					Namespace: namespace,
-				},
-			},
-			RoleRef: rbacv1beta1.RoleRef{
-				Kind:     "ClusterRole",
-				Name:     "system:image-builder",
-				APIGroup: "rbac.authorization.k8s.io",
-			},
-		},
-		{
-			ObjectMeta: metav1.ObjectMeta{
-				Name: "system:image-pullers",
-			},
-			Subjects: []rbacv1beta1.Subject{
-				{
-					Kind:      "Group",
-					Name:      "system:serviceaccounts:" + namespace,
-					Namespace: namespace,
-				},
-			},
-			RoleRef: rbacv1beta1.RoleRef{
-				Kind:     "ClusterRole",
-				Name:     "system:image-puller",
-				APIGroup: "rbac.authorization.k8s.io",
-			},
-		},
-	}
-}
-
 // Fuse Custom Resource
 func getFuseObj(deployNamespace, consumerNamespace string, integrationsLimit int) *v1alpha1.Syndesis {
 	return &v1alpha1.Syndesis{
@@ -161,8 +103,7 @@ func getFuseObj(deployNamespace, consumerNamespace string, integrationsLimit int
 			Annotations:  map[string]string{},
 		},
 		Spec: v1alpha1.SyndesisSpec{
-			SarNamespace:         consumerNamespace,
-			ImageStreamNamespace: FUSE_IMAGE_STREAMS_NAMESPACE,
+			SarNamespace: consumerNamespace,
 			Integration: v1alpha1.IntegrationSpec{
 				Limit: &integrationsLimit,
 			},
