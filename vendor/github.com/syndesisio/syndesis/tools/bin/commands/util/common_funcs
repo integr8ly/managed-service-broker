@@ -1,0 +1,274 @@
+#!/bin/bash
+
+# Minimal version for GO
+GO_MIN_VERSION=1.12
+
+# Checks if a flag is present in the arguments.
+hasflag() {
+    filters="$@"
+    for var in "${ARGS[@]}"; do
+        for filter in $filters; do
+          if [ "$var" = "$filter" ]; then
+              echo 'true'
+              return
+          fi
+        done
+    done
+}
+
+isMacOs() {
+    if [ -z "${OSTYPE}" ]; then
+        if [ $(uname) == "Darwin" ]; then
+            echo "true"
+        fi
+    elif [ "${OSTYPE#darwin}" != "${OSTYPE}" ]; then
+        echo "true"
+    else
+        echo "false"
+    fi
+}
+
+isWindows() {
+    if [ -z "${OSTYPE}" ]; then
+        if [ $(uname) == "Windows" ]; then
+            echo "true"
+        fi
+    elif [ "${OSTYPE#windows}" != "${OSTYPE}" ]; then
+        echo "true"
+    else
+        echo "false"
+    fi
+}
+
+# Read the value of an option.
+readopt() {
+    filters="$@"
+    next=false
+    for var in "${ARGS[@]}"; do
+        if $next; then
+            local value="${var##-}"
+            if [ "$value" != "$var" ]; then
+               # Next is already also option, so we haven't
+               # specified a value.
+               return
+            fi
+            echo $var
+            break;
+        fi
+        for filter in $filters; do
+            if [[ "$var" = ${filter}* ]]; then
+                local value="${var//${filter}=/}"
+                if [ "$value" != "$var" ]; then
+                    echo $value
+                    return
+                fi
+                next=true
+            fi
+        done
+    done
+}
+
+
+check_error() {
+    local msg="$*"
+    if [ "${msg//ERROR/}" != "${msg}" ]; then
+        if [ -n "${ERROR_FILE:-}" ] && [ -f "$ERROR_FILE" ] && ! grep "$msg" $ERROR_FILE ; then
+            local tmp=$(mktemp /tmp/error-XXXX)
+            echo ${msg} >> $tmp
+            if [ $(wc -c <$ERROR_FILE) -ne 0 ]; then
+              echo >> $tmp
+              echo "===============================================================" >> $tmp
+              echo >> $tmp
+              cat $ERROR_FILE >> $tmp
+            fi
+            mv $tmp $ERROR_FILE
+        fi
+        exit 0
+    fi
+}
+
+print_error() {
+    local exit_code=$?
+    local error_file="${1:-}"
+    if [ -f $error_file ] && grep -q "ERROR" $error_file; then
+        cat $error_file
+    elif [ $exit_code -ne 0 ]; then
+        echo "ERROR: Last command exited with $exit_code"
+    fi
+
+    if [ -f $error_file ]; then
+        rm $error_file
+    fi
+}
+
+open_url() {
+    local url=$1
+    local cmd="$(probe_commands open xdg-open chrome firefox)"
+    if [ -z "$cmd" ]; then
+        echo "Cannot find command for opening URL:"
+        echo $url
+        exit 1
+    fi
+    exec $cmd $url
+}
+
+probe_commands() {
+    for cmd in $@; do
+      local ret=$(which $cmd 2>/dev/null)
+      if [ $? -eq 0 ]; then
+          echo $ret
+          return
+      fi
+    done
+}
+
+# Syndesis config dir holding state across builds
+syndesis_config_dir() {
+  local dir="$HOME/.syndesis";
+  [ -d $dir ] || mkdir $dir;
+  echo $dir
+}
+
+# ======================================================
+# Git update functions
+git_rebase_upstream() {
+  echo "git fetch upstream master"
+  git fetch upstream master
+  echo -n "git rebase upstream/master"
+  if ! git rebase upstream/master; then
+    echo " (failed)"
+    echo "git stash"
+    git stash
+    echo "git rebase upstream/master"
+    git rebase upstream/master
+    echo "git stash pop"
+    git stash pop
+  else
+    echo
+  fi
+}
+
+# returns `"true"` if subtree path has changes
+has_changes() {
+  local subtree_path="${1:-}"
+  local ref="${2:-master}"
+  local hash="${CIRCLE_SHA1:-$(git rev-parse HEAD)}"
+
+  local changed_paths="$(git diff ..${ref} --name-only | tr '\n' ' ') $(git status --porcelain=v1 | cut -c 4- | tr '\n' ' ')"
+
+  # when on `master` on CircleCI, compute changed paths for the commit being built
+  if [ "master" == "${CIRCLE_BRANCH:-}" ]; then
+    changed_paths="$changed_paths $(git log $hash^..$hash --name-only --pretty='format:' | tr '\n' ' ')"
+  fi
+  if [[ " $changed_paths" == *" ${subtree_path}"* ]]; then
+    echo "true"
+  fi
+}
+
+docker_is_available() {
+    set +e
+    which docker &>/dev/null
+    if [ $? -ne 0 ]; then
+        set -e
+        echo "ERROR: 'docker' command not installed"
+        return
+    fi
+
+    if docker info > /dev/null 2> /dev/null ; then
+        echo "OK"
+    else
+        echo "ERROR: the 'docker' command is not connected to a server"
+    fi
+
+    set -e
+}
+
+go_is_available() {
+    set +e
+    which go &>/dev/null
+    if [ $? -ne 0 ]; then
+        set -e
+        echo "ERROR: 'go' command not installed"
+        return
+    fi
+
+    test=$(go version | sed -n 's/go version go\([0-9].[0-9][0-9]\).*/\1/p')
+    if [ -z "$test" ]; then
+        echo "ERROR: 'go' command version cannot be determined"
+        return
+    fi
+
+    gocompare=$(compare_version $test $GO_MIN_VERSION \"go\")
+    if [[ "$gocompare" != "OK" ]] ; then
+        set -e
+        echo "ERROR: 'go' command ($test) does not meet the minimum version of $GO_MIN_VERSION"
+        return
+    fi
+
+    set -e
+
+    echo "OK"
+}
+
+compare_version_part() {
+    local test=$1
+    local min=$2
+
+    test=`expr $test`
+    min=`expr $min`
+
+    if [ $test -eq $min ]; then
+        echo 0;
+    elif [ $test -gt $min ]; then
+        echo 1;
+    else
+        # $test -lt $min
+        echo -1
+    fi
+}
+
+compare_version() {
+    local test=$1
+    local min=$2
+
+    testparts=( ${test//./ } )
+    minparts=( ${min//./ } )
+
+    local i=0
+    while [ $i -lt ${#minparts[@]} ]
+    do
+        local testpart=${testparts[$i]}
+        local minpart=${minparts[$i]}
+
+        if [ -z "$testpart" ]; then
+            # test version does not extend as far as minimum
+            # in parts so append a 0
+            testpart=0
+        fi
+
+        ret=$(compare_version_part $testpart $minpart)
+        if [ $ret == -1 ]; then
+            #
+            # version part is less than minimum while all preceding
+            # parts were equal so version does not meet minimum
+            #
+            echo "ERROR: version ($test) should be at least $min"
+            return
+        elif [ $ret == 1 ]; then
+            #
+            # version part is greater than minimum so no need to test
+            # any further parts as version is greater than minimum
+            #
+            echo "OK"
+            return
+        fi
+
+        #
+        # Only if the version part is equal will the loop continue
+        # with further parts.
+        #
+        i=`expr $i + 1`
+    done
+
+    echo "OK"
+}

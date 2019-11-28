@@ -1,0 +1,34 @@
+// Module included in the following assemblies:
+// as_t2sf-create-integration.adoc
+
+[id='t2sf-add-basic-filter-step_{context}']
+= Adding a basic filter step
+
+In {prodname}, to continue creating the Twitter to Salesforce sample
+integration, add a basic filter step that checks tweets that mention you
+for particular content. At integration execution time, processing 
+continues only if that content is present.
+
+.Prerequisites
+* You added the Twitter connection as the integration's start connection. 
+* You just added the Salesforce connection as the integration's finish connection. 
+
+.Procedure
+
+. In the integration visualization, click the plus sign, which
+displays the steps that you can add to the integration. 
+. Click *Basic Filter*.
+
+. In the *Property Name* field, start to enter 
+`*text*` and when `text`
+appears below the field, click it. 
+The Twitter `text` field, which contain a tweet, 
+is the data that you want the filter to evaluate.
+
+. In the *Operator* field, accept *contains* as the condition to be met for the integration to
+continue.
+. In the *Keywords* field, enter `*#RedHatIsGreat*` or some other text 
+that you choose for the value to check for.
+A tweet that mentions you must contain the text you enter here for
+the integration to continue operating on this data.
+. Click *Done* to add the basic filter step to the integration.

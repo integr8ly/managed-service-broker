@@ -1,0 +1,178 @@
+// This module is included in the following assemblies:
+// as_connecting-to-google-sheets.adoc
+
+[id='add-google-sheets-connection-get-sheet-values_{context}']
+= Obtaining spreadsheet data to trigger an integration or in the middle of a flow
+
+To trigger execution of an integration upon obtaining data from a
+Google Sheets spreadsheet, add a Google Sheets connection to a simple integration 
+as its start connection. When the integration is running, the Google Sheets 
+connection polls the spreadsheet at the interval that you specified, obtains
+the data that you identified, and passes the data to the next step in the 
+integration.
+
+To obtain spreadsheet data in the middle of a flow, add a Google Sheets 
+connection as a middle connection. During execution, {prodname} polls 
+the spreadsheet for the specified data as soon as it starts processing 
+this connection. In other words, the connection does not wait for an 
+interval to elapse before polling the spreadsheet. 
+
+To obtain data from a particular sheet in a spreadsheet, you specify the
+sheet name when you configure the action for the
+Google Sheets connection. A particular connection can obtain data from
+only one sheet. 
+
+Between polls, if there are no changes to the sheet values that the 
+connection is configured to return, then 
+the next poll returns the same values as the previous poll. 
+
+.Prerequisites
+* You created a Google Sheets connection that is authorized to access 
+the spreadsheet that you want to obtain data from. 
+
+* If this Google Sheets connection is triggering integration execution, 
+then you are creating an integration and {prodname} is prompting you 
+to choose the start connection. 
+
+* If this Google Sheets connection is in the middle of a flow, 
+then the integration already has a start connection and a finish 
+connection, and {prodname} is prompting you to add to the integration by choosing a step. 
+
+.Procedure
+
+. Click the Google Sheets connection that you want to use.
+. On the *Choose an action* page, for a start connection, select the 
+*Get sheet values* action or for a middle connection, select the 
+*Retrieve sheet values* action. 
+. To configure the action:
+.. In the *SpreadsheetId* field, enter the ID of a Google spreadsheet that is
+accessible from the Google account that this Google Sheets connection
+is authorized to access.
++
+To obtain a spreadsheet ID, display the spreadsheet in a browser. 
+The ID is the part of the URL between `d/` and `/edit`. 
+
+.. In the *Range* field, enter Google A1 notation that identifies 
+the data that you want to obtain. The default is *A:A*.
++
+For example, suppose that you want all data from a spreadsheet that
+has one sheet with 4 columns. Specify `A:D`. Or, to obtain data from
+rows 5 through 15, specify `A5:D15`. 
++
+If the spreadsheet from which you are 
+obtaining data has more than one sheet, specify the sheet name as well 
+as the start cell coordinate and the end cell coordinate. If there is more 
+than one sheet, and you do not
+specify a sheet name, then the connection obtains data from the first 
+sheet in the spreadsheet. For example, specification of `2019!A1:D5` specifies
+that you want to obtain data from the sheet whose name is `2019`. In that
+sheet, you want the data that is in columns A through D for rows 1 through 5. 
+
+.. In the *Major dimension* field, accept *Rows*, which is the default, or
+select *Columns*. 
++
+*Rows* configures the action to return a collection
+of row objects where each row object contains a value for each desired column. 
+When *Major dimension* is *Rows*, {prodname} can display meaningful column 
+headings as field names in the data mapper, rather than *A*, *B*, *C*, and so on.
++
+*Columns* configures the action to return a collection of column objects
+where each column object contains a value for each desired row. 
+
+.. In the *Header row number* field, if *Major dimension* is set to *Rows*, 
+optionally enter the number of the row that contains the column headings in 
+the data that the connection obtains. Specification of a header row enables 
+{prodname} to obtain the headings from the spreadsheet. If you do not 
+specify a header row, column headings default to a letter heading for 
+each column in the range of data that the connection obtains. 
+You can edit obtained headings or letter headings in the subsequent page. 
++
+[NOTE]
+If you are configuring a Google Sheets middle connection, the rest of 
+the configuration options are not needed and {prodname} does not 
+prompt for them. Skip to step 4. 
+  
+.. In the *Split results* field, accept *No*, which is the default, or
+select *Yes*. A setting of *No* configures the action to
+return data as a collection of values. That is,
+the connection passes a collection of row objects or a collection of
+column objects to the next step in the flow. 
+Select *Yes* to enable the connection to split the returned data 
+according to the setting of *Major dimension*. For example, if 
+*Major dimension* is set to *Rows* then the connection returns row
+objects. Each row object triggers a separate execution of the flow. 
+That is, {prodname} executes the flow once for each returned row
+object. For example, if the poll returns 5 rows then {prodname} executes
+the flow 5 times.
++
+{prodname} also provides discrete split and aggregate steps, which 
+you can add to a flow. 
+If you want to process individual objects in one or more steps and 
+then aggregate the row or column objects, do not split the Google Sheets 
+connection result. Instead, accept the default, *No*, and then add a 
+split step to the flow after this connection. A split step is 
+required if you want an aggregate step in the flow. 
+
+.. In the *Delay* field, accept the default of 30 seconds or
+specify how often you want the connection to obtain spreadsheet data.
+
+.. In the *Max results* field, accept the default of *0* if you do not 
+want to restrict how many rows or columns polling can return. The setting 
+of *Max results* applies to the setting of the major dimension in the 
+result matrix. To limit the data that the connection returns for the 
+major dimension, specify an integer. 
++
+For example, suppose that the major dimension is rows and that *Max results* 
+is set to *25*. The poll returns no more than 25 rows of values. 
++
+When *Range* specifies the major dimension and you also specify 
+*Max results*, polling uses the lower number to determine how much 
+data to return. Consequently, setting a value for *Max results* is 
+more helpful when you specify only the minor dimension for *Range*. 
+For example, consider a sheet that has 30 rows with three columns of 
+values in each row. Suppose that *Major dimension* is *Rows* and 
+*Range* is *A:C*. If you set *Max results* to *10*, polling returns 
+10 rows of data. If you accept *0* as the setting of *Max results*, 
+polling returns 30 rows. However, if you specify *Range* as *A1:C15* 
+and you also specify *Max results* as *25*, polling returns 15 
+rows. If you specify *Range* as *A1:C30* and you also 
+specify *Max results* as *25*, polling returns 25 rows.
+
+. Click *Next* to view the column names in the data that the connection 
+obtains when *Major dimension* is set to *Rows*. If *Major dimension* is 
+*Columns*, content in this field is ignored and you can click *Next* 
+now to complete this procedure. 
++
+The values that appear in the *Column names* field become the 
+field names that a data mapper step displays. If you specified a 
+header row number, {prodname} displays the headings from that 
+row in the sheet that you are obtaining data from. If you left 
+the header row number field blank, {prodname} displays a letter 
+(*A*, *B*, *C*, and so on) for each column in the range of 
+data that you are obtaining.
+
+. Optionally, edit the *Column names* field so it contains the 
+field names that you want to see in a data mapper step. 
+The field must contain a comma-separated list with no spaces, 
+for example, `Name,Address,City,State,Zip`. 
+
+. Click *Next* to add this Google Sheets connection to the flow.
+
+.Next steps
+If you added a Google Sheets connection as a start connection, {prodname} 
+prompts you to add the
+integration's finish connection. With the start and finish connections
+in the integration, add any other connections that you want in the
+integration. 
+
+After the connection that obtains sheet values, 
+add a data mapper step. In the data mapper, {prodname} displays 
+source fields according to how you configure the action that obtains spreadsheet values. 
+That is, if the major dimension is *Rows*, then the data mapper lists 
+the column names as fields that you can map to the target. If the major 
+dimension is *Columns*, then the data mapper lists row indexes as 
+fields that you can map to the target.
+
+.Additional resource
+link:https://developers.google.com/sheets/api/guides/concepts#a1_notation[Google A1 notation]  
+for specifying groups of cells in a spreadsheet

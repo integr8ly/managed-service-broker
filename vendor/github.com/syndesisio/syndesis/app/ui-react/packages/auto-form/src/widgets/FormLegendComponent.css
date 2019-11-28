@@ -1,0 +1,7 @@
+.auto-form-legend {
+  white-space: nowrap;
+}
+
+.auto-form-legend .auto-form-legend__text {
+  margin-bottom: 0 !important;
+}

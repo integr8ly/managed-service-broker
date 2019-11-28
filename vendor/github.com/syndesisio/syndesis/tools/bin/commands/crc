@@ -1,0 +1,237 @@
+#!/bin/bash
+
+DEFAULT_OPENSHIFT_VERSION="v3.11.0"
+DEFAULT_CPUS="4"
+DEFAULT_RAM="8192"
+
+crc::description() {
+    echo "Initialize and manage a developer environment using OCP4 CodeReady Containers"
+}
+
+crc::usage() {
+    cat <<EOT
+    --install                 Install syndesis to a running OCP4 CodeReady Containers cluster.
+-p  --project                 Install into this project. Delete this project if it already exists.
+                              By default, install into the current project (without deleting)
+    --reset                   Reset and initialize the crc installation by
+                              'crc delete && crc start'.
+    --full-reset              Full reset and initialie by
+                              'crc stop && rm -rf ~/.crc/* && crc start'
+    --operator-only           Only install the operator but no custom resource
+    --memory <mem>            How much memory to use when doing a reset. Default: $DEFAULT_RAM
+    --cpus <nr cpus>          How many CPUs to use when doing a reset. Default: $DEFAULT_CPUS
+    --pull-secret-file <file> File holding the OCP4 pull secret
+    --vm-driver <driver>      Which virtual machine driver to use (depends on OS)
+    --bundle <path-to-bundle> Path to system bundle (required when using virtualbox vm-driver)
+    --local                   Use the local resource files instead of fetching them from GitHub
+                              By default "syndesis.<project_name>.apps-crc.testing" is used.
+-f  --force-binary-download   By default if the binary cli is present in the expected path, it will
+                              be used. With this option enabled, the binary will be removed and downloaded,
+                              ensuring it is the latest version
+-o  --open                    Open Syndesis in the browser
+-y  --yes                     Assume 'yes' automatically when asking for deleting
+                              a given project.
+    --memory-server <mem>     Memory limit to set for syndesis-server. Specify as "800Mi"
+    --memory-meta <mem>       Memory limit to set for syndesis-meta. Specify as "512Mi"
+    --test-support            Allow test support endpoint for syndesis-server
+    --camel-k <version>       Install the Camel-K operator with version <version>
+                              (version is optional)
+    --camel-k-options "opts"  Options used when installing the camel-k operator.
+                              Use quotes and start with a space before appending the options.
+    --datavirt                Install Data Virtualizations.
+    --maven-mirror            Install Maven Mirror to be used with --maven-mirror when building.
+    --nodev                   Do not set the devSupport flag in CR (deploys all images)
+EOT
+}
+
+
+crc::run() {
+    source "$(basedir)/commands/util/openshift_funcs"
+    source "$(basedir)/commands/util/camel_k_funcs"
+    source "$(basedir)/commands/util/operator_funcs"
+
+    if [ $(hasflag -f --force-binary-download) ]; then
+        if [[ -f ${OPERATOR_BINARY} ]]; then
+            rm ${OPERATOR_BINARY}
+        fi
+    fi
+    download_operator_binary || print_error_and_exit "unable to download the operator binary, exit"
+
+    # Check that crc is installed
+    which crc &>/dev/null
+    if [ $? -ne 0 ]; then
+        echo "ERROR: No 'crc' found in path."
+        echo "Please install OCP4 CodeReady Containers from https://cloud.redhat.com/openshift/install/crc/installer-provisioned"
+        exit 1
+    fi
+
+    if [ $(hasflag --full-reset) ] || [ $(hasflag --reset) ]; then
+        delete_crc $(hasflag --full-reset)
+        start_crc
+    fi
+
+    # Start crc if necessary
+    if [ -z "$(is_crc_running)" ]; then
+        start_crc
+    fi
+
+    # Ensure OC is in the path
+    eval $(crc oc-env)
+
+    if [ $(hasflag --maven-mirror) ]; then
+        install_maven_mirror
+    fi
+
+    if [ $(hasflag --install) ]; then
+
+        # Switch to the proper context
+        local profile=$(readopt --profile)
+        if [ -n "${profile}" ]; then
+          # Switch to context
+          echo "Using context/profile $context"
+          oc config use-context $context
+        fi
+
+        # Pick the proper project
+        local original_project="$(oc project -q)"
+        local project=$(readopt --project -p)
+        if [ -n "${project}" ]; then
+            recreate_project $project "$(hasflag --yes -y)"
+        else
+            local project="$original_project"
+        fi
+
+        # Adapt namespace of profile to the selected
+        # project if a profile is used
+        if [ -n "$profile" ]; then
+            oc config set-context "$profile" --namespace="$project"
+        fi
+
+        echo "Switching to project \"$project\""
+        oc project $project
+
+        # Install Syndesis CRD
+        if ! $(oc get crd | grep "syndesises.syndesis.io" >/dev/null 2>&1); then
+            echo "Installing Syndesis CRD"
+            local result=$($OPERATOR_BINARY install cluster)
+            check_error "$result"
+        fi
+
+        # Install Camel-K CRD
+        if [ $(hasflag --camel-k) ]; then
+          echo "Installing Camel-K CRDs"
+          result=$(install_camel_k_crds "$(readopt --camel-k)")
+          check_error "$result"
+        fi
+
+        # Deploy operator
+        echo "Deploying Syndesis operator"
+        result=$($OPERATOR_BINARY install operator)
+        check_error "$result"
+
+        # Deploy Camel-K operator if requested
+        if [ $(hasflag --camel-k) ]; then
+          echo "Deploying Camel-K operator"
+          result=$(deploy_camel_k_operator "$(readopt --camel-k)" "$(oc project -q)" "$(readopt --camel-k-options)")
+          check_error "$result"
+        fi
+
+        wait_for_deployments 1 syndesis-operator
+
+        if [ $(hasflag --operator-only) ]; then
+            echo "Deployed operator."
+            exit 0
+        else
+            echo "Deploying syndesis app."
+            if [ $(hasflag --nodev) ] ; then
+                result=$($OPERATOR_BINARY install app)
+            else
+                result=$($OPERATOR_BINARY install app --dev)
+                echo "To complete the installation please go ahead and run local dev builds for syndesis-server syndesis-ui syndesis-meta syndesis-s2i."
+            fi
+            check_error "$result"
+        fi
+
+        echo "Install finished."
+    fi
+
+    if [ $(hasflag --open -o) ]; then
+        while ! (oc get routes | grep syndesis >/dev/null 2>&1); do
+            echo "Sleeping 5s ..."
+            sleep 5
+        done
+        open_url "https://$(oc get routes syndesis --template "{{.spec.host}}")"
+    fi
+}
+
+login_as_admin() {
+    local user=$(oc whoami)
+    local token=$(extract_current_token)
+    local project=$(oc project -q)
+
+    # Login in as admin
+    oc login -u kubeadmin >/dev/null 2>&1
+
+    # Return the command to use to revert to the initial user
+    if [ -n "${token}" ]; then
+        echo "oc login -u ${user} -p $token"
+    else
+        echo "oc login -u ${user}"
+    fi
+}
+
+extract_current_token() {
+    local token=$(oc whoami -t 2>/dev/null)
+    if [ $? == 0 ]; then
+        echo $token
+    fi
+}
+
+is_crc_running() {
+    set +e
+    crc status 2>&1 | grep -q "Running"
+    local stat=$?
+    set -e
+    if [ $stat -eq 0 ]; then
+      echo "true"
+    fi
+}
+
+delete_crc() {
+    local remove_all=${1:-}
+
+    if [ $(is_crc_running) ]; then
+      crc stop
+    fi
+
+    crc delete
+    if [ $remove_all ] && [ -d ~/.crc ]; then
+        rm -rf ~/.crc/*
+    fi
+}
+
+start_crc() {
+    local memory=$(readopt --memory)
+    local cpus=$(readopt --cpus)
+    local extra_args=""
+    local vmdriver=$(readopt --vm-driver --vmdriver)
+
+    if [ -n "${vmdriver}" ]; then
+        extra_args="${extra_args}--vm-driver ${vmdriver} "
+    fi
+
+    local bundle=$(readopt --bundle)
+    if [ -n "${bundle}" ]; then
+        extra_args="${extra_args}--bundle ${bundle} "
+    fi
+
+    local pullSecretFile=$(readopt --pull-secret-file)
+    if [ -n "${pullSecretFile}" ]; then
+        extra_args="${extra_args}--pull-secret-file ${pullSecretFile} "
+    fi
+
+    echo "Starting CodeReady Containers ...."
+    crc start ${extra_args:-}\
+            --memory ${memory:-$DEFAULT_RAM} \
+            --cpus ${cpus:-$DEFAULT_CPUS}
+}

@@ -1,0 +1,13 @@
+.integration-detail-info {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.integration-detail-info__status {
+  white-space: nowrap;
+}
+
+.integration-detail-info__status-icon {
+  margin-right: 5px;
+}

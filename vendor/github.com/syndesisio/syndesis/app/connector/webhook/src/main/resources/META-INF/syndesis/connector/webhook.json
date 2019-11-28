@@ -1,0 +1,70 @@
+{
+  "actions": [
+    {
+      "actionType": "connector",
+      "description": "Start an integration from a Webhook",
+      "descriptor": {
+        "componentScheme": "servlet",
+        "configuredProperties": {
+          "headerFilterStrategy": "syndesisHeaderStrategy",
+          "httpMethodRestrict": "GET,POST"
+        },
+        "connectorCustomizers": [
+          "io.syndesis.connector.webhook.WebhookConnectorCustomizer"
+        ],
+        "inputDataShape": {
+          "kind": "none"
+        },
+        "outputDataShape": {
+          "kind": "any"
+        },
+        "propertyDefinitionSteps": [
+          {
+            "description": "Webhook Configuration",
+            "name": "configuration",
+            "properties": {
+              "contextPath": {
+                "componentProperty": false,
+                "deprecated": false,
+                "description": "The Webhook token that will be set as final part of the URL",
+                "displayName": "Webhook Token",
+                "enum": [],
+                "generator": "alphanum:50",
+                "javaType": "String",
+                "kind": "parameter",
+                "required": true,
+                "secret": false,
+                "tags": [
+                  "context-path"
+                ],
+                "type": "string"
+              }
+            }
+          }
+        ]
+      },
+      "id": "io.syndesis:webhook-incoming",
+      "metadata": {
+        "serverBasePath": "/webhook"
+      },
+      "name": "Incoming Webhook",
+      "pattern": "From",
+      "tags": [
+        "expose"
+      ]
+    }
+  ],
+  "dependencies": [
+    {
+      "id": "@project.groupId@:@project.artifactId@:@project.version@",
+      "type": "MAVEN"
+    }
+  ],
+  "description": "Create direct connections with external systems through Webhooks",
+  "icon": "assets:webhook.svg",
+  "id": "webhook",
+  "metadata": {
+    "hide-from-connection-pages": true
+  },
+  "name": "Webhook"
+}

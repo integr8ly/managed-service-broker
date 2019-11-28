@@ -1,0 +1,80 @@
+{
+  "actions": [
+    {
+      "actionType": "connector",
+      "description": "Start a Syndesis integration flow",
+      "descriptor": {
+        "componentScheme": "direct",
+        "connectorCustomizers": [],
+        "inputDataShape": {
+          "name": "No shape",
+          "kind": "none"
+        },
+        "outputDataShape": {
+          "name": "Any shape",
+          "kind": "any"
+        },
+        "propertyDefinitionSteps": [
+          {
+            "description": "Flow start configuration",
+            "name": "configuration",
+            "properties": {
+              "name": {
+                "componentProperty": false,
+                "deprecated": false,
+                "description": "The flow identifier used to route messages to",
+                "displayName": "Flow ID",
+                "javaType": "String",
+                "kind": "parameter",
+                "required": true,
+                "secret": false,
+                "type": "hidden"
+              }
+            }
+          }
+        ]
+      },
+      "id": "io.syndesis:flow-start",
+      "name": "Flow Start",
+      "pattern": "From",
+      "tags": []
+    },
+    {
+      "actionType": "connector",
+      "description": "End action of Syndesis integrations flow",
+      "descriptor": {
+        "componentScheme": "bean",
+        "configuredProperties": {
+          "beanName": "io.syndesis.connector.flow.NoOpBean",
+          "method": "process"
+        },
+        "connectorCustomizers": [],
+        "inputDataShape": {
+          "kind": "any"
+        },
+        "outputDataShape": {
+          "kind": "none"
+        },
+        "propertyDefinitionSteps": []
+      },
+      "id": "io.syndesis:flow-end",
+      "name": "Flow End",
+      "pattern": "To"
+    }
+  ],
+  "configuredProperties": {},
+  "dependencies": [
+    {
+      "id": "@project.groupId@:@project.artifactId@:@project.version@",
+      "type": "MAVEN"
+    }
+  ],
+  "description": "Connect with flows using direct endpoint",
+  "icon": "assets:flow.svg",
+  "id": "flow",
+  "metadata": {
+    "hide-from-connection-pages": true,
+    "hide-from-step-select": true
+  },
+  "name": "Flow"
+}

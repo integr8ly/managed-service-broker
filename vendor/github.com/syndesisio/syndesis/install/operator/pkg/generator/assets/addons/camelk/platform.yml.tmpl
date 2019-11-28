@@ -1,0 +1,18 @@
+- apiVersion: camel.apache.org/v1alpha1
+  kind: IntegrationPlatform
+  metadata:
+    labels:
+      app: camel-k
+    name: camel-k
+  spec:
+    build:
+      baseImage: '{{ .Images.CamelKBaseImagePrefix }}:{{ .Tags.CamelKBase }}'
+      {{- if (not .Productized)}}
+      camelVersion: {{.Versions.Camel}}
+      runtimeVersion: {{.Versions.CamelKRuntime}}
+      {{- end}}
+      maven:
+        settings:
+          configMapKeyRef:
+            key: settings.xml
+            name: camel-k-maven-settings

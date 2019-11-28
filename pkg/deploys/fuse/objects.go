@@ -2,8 +2,8 @@ package fuse
 
 import (
 	brokerapi "github.com/integr8ly/managed-service-broker/pkg/broker"
-	"github.com/integr8ly/managed-service-broker/pkg/deploys/fuse/pkg/apis/syndesis/v1alpha1"
 	authv1 "github.com/openshift/api/authorization/v1"
+	synv1 "github.com/syndesisio/syndesis/install/operator/pkg/apis/syndesis/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -91,8 +91,8 @@ func getUserViewRoleBindingObj(namespace, username string) *authv1.RoleBinding {
 }
 
 // Fuse Custom Resource
-func getFuseObj(deployNamespace, consumerNamespace string, integrationsLimit int) *v1alpha1.Syndesis {
-	return &v1alpha1.Syndesis{
+func getFuseObj(deployNamespace, consumerNamespace string, integrationsLimit int) *synv1.Syndesis {
+	return &synv1.Syndesis{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "Syndesis",
 			APIVersion: "syndesis.io/v1alpha1",
@@ -102,20 +102,18 @@ func getFuseObj(deployNamespace, consumerNamespace string, integrationsLimit int
 			GenerateName: "fuse-",
 			Annotations:  map[string]string{},
 		},
-		Spec: v1alpha1.SyndesisSpec{
+		Spec: synv1.SyndesisSpec{
 			SarNamespace: consumerNamespace,
-			Integration: v1alpha1.IntegrationSpec{
+			Integration: synv1.IntegrationSpec{
 				Limit: &integrationsLimit,
 			},
-			Components: v1alpha1.ComponentsSpec{
-				Db:         v1alpha1.DbConfiguration{},
-				Prometheus: v1alpha1.PrometheusConfiguration{},
-				Server: v1alpha1.ServerConfiguration{
-					Features: v1alpha1.ServerFeatures{
-						ExposeVia3Scale: true,
-					},
+			Components: synv1.ComponentsSpec{
+				Db:         synv1.DbConfiguration{},
+				Prometheus: synv1.PrometheusConfiguration{},
+				Server: synv1.ServerConfiguration{
+					Features: synv1.ServerFeatures{},
 				},
-				Meta: v1alpha1.MetaConfiguration{},
+				Meta: synv1.MetaConfiguration{},
 			},
 		},
 	}

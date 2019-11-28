@@ -1,0 +1,35 @@
+// This module is included in the following assemblies:
+// as_connecting-to-sf.adoc
+
+[id='adding-sf-connections_{context}']
+= Adding a Salesforce connection to an integration
+
+In an integration, you can connect to Salesforce in the middle of 
+a flow or to start or finish a simple integration. To do this,
+add a Salesforce connection to the integration.
+
+.Prerequisites
+* You created a Salesforce connection. 
+* You are creating or updating an integration. 
+* {prodname} is prompting you to choose a start connection, or to choose a 
+finish connection, or to add to the integration. 
+
+.Procedure
+
+. If you are adding to the Salesforce connection to the middle of 
+a flow, click the plust sign where you want to add the connection. 
+Skip this step if {prodname} is prompting for a start or finish connection. 
+. Click the Salesforce
+connection that you want to add to the flow. When the integration
+uses the connection that you select to connect to Salesforce, {prodname}
+uses the credentials defined in that connection.
+
+. Select the action that you want the selected connection to perform.  Each
+Salesforce connection
+that you add to a flow performs only the action you choose.
+
+. Specify the Salesforce object that the action operates on, for example, it
+might be a contact, lead or price book entry. Click in the *Object* field
+to select from a list of Salesforce objects or enter the name of the object.
+
+. Click *Next* to add the connection to the flow.

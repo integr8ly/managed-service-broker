@@ -1,0 +1,9 @@
+.open-api-select-method .url-note {
+  color: gray;
+  font-size: smaller;
+  font-style: italic;
+}
+
+.open-api-select-method__dnd-container {
+  margin: 20px 0;
+}

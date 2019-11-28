@@ -1,0 +1,62 @@
+.integration-detail-activity-item {
+  border: none;
+}
+
+.integration-detail-activity-item .list-group-item-heading {
+  line-height: 2;
+  font-weight: normal;
+  overflow: visible;
+  white-space: nowrap;
+  width: auto;
+}
+
+.integration-detail-activity-item .integration-detail-activity-item__status-item {
+  display: flex;
+  align-items: center;
+}
+
+.integration-detail-activity-item .integration-detail-activity-item__output {
+  white-space: nowrap;
+}
+
+.integration-detail-activity-item .integration-detail-activity-item__output {
+  padding: 0;
+  vertical-align: middle;
+}
+
+.integration-detail-activity-item .table-hover tr:hover .integration-detail-activity-item__output,
+.integration-detail-activity-item .integration-detail-activity-item__output {
+  background: #fafafa;
+}
+
+.integration-detail-activity-item__output-step-data {
+  max-height: 15em;
+  padding: 5px;
+  border: 0;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+}
+
+.integration-detail-activity-item__expanded-table {
+  margin-top: 25px;
+}
+
+.integration-detail-activity-item .list-view-pf-additional-info {
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.integration-detail-activity-item .list-view-pf-additional-info-item:not(:last-child) {
+  margin-bottom: 10px;
+}
+
+@media (min-width: 992px) {
+  .integration-detail-activity-item .list-view-pf-additional-info {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .integration-detail-activity-item .list-view-pf-additional-info-item:not(:last-child) {
+    margin-bottom: 0;
+  }
+}

@@ -1,0 +1,735 @@
+{
+  "actions": [
+    {
+      "actionType": "connector",
+      "description": "Send POST request to /pet",
+      "descriptor": {
+        "configuredProperties": {
+          "operationId": "addPet"
+        },
+        "connectorId": "_id_",
+        "inputDataShape": {
+          "description": "API request payload",
+          "kind": "xml-schema",
+          "metadata": {
+            "unified": "true"
+          },
+          "name": "Request",
+          "specification": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<d:SchemaSet xmlns:d=\"http://atlasmap.io/xml/schemaset/v2\" xmlns:xsd=\"http://www.w3.org/2001/XMLSchema\"><xsd:schema targetNamespace=\"http://syndesis.io/v1/swagger-connector-template/request\" elementFormDefault=\"qualified\"><xsd:element name=\"request\"><xsd:complexType><xsd:sequence><xsd:element name=\"body\"><xsd:complexType><xsd:sequence><xsd:element ref=\"Pet\"/></xsd:sequence></xsd:complexType></xsd:element></xsd:sequence></xsd:complexType></xsd:element></xsd:schema><d:AdditionalSchemas><xsd:schema><xsd:element name=\"Pet\"><xsd:complexType><xsd:sequence><xsd:element name=\"Category\"><xsd:complexType><xsd:sequence><xsd:element name=\"id\" type=\"xsd:integer\"/><xsd:element name=\"name\" type=\"xsd:string\"/></xsd:sequence></xsd:complexType></xsd:element><xsd:element name=\"id\" type=\"xsd:integer\"/><xsd:element name=\"name\" type=\"xsd:string\"/><xsd:element name=\"photoUrl\"><xsd:complexType><xsd:sequence><xsd:element name=\"photoUrl\" type=\"xsd:string\" maxOccurs=\"unbounded\" minOccurs=\"0\"/></xsd:sequence></xsd:complexType></xsd:element><xsd:element name=\"status\" type=\"xsd:string\"/><xsd:element name=\"tag\"><xsd:complexType><xsd:sequence><xsd:element name=\"Tag\" maxOccurs=\"unbounded\" minOccurs=\"0\"><xsd:complexType><xsd:sequence><xsd:element name=\"id\" type=\"xsd:integer\"/><xsd:element name=\"name\" type=\"xsd:string\"/></xsd:sequence></xsd:complexType></xsd:element></xsd:sequence></xsd:complexType></xsd:element></xsd:sequence></xsd:complexType></xsd:element></xsd:schema></d:AdditionalSchemas></d:SchemaSet>"
+        },
+        "outputDataShape": {
+          "kind": "none"
+        }
+      },
+      "id": "_id_:addPet",
+      "name": "Add a new pet to the store",
+      "pattern": "To",
+      "tags": [
+        "pet"
+      ]
+    },
+    {
+      "actionType": "connector",
+      "description": "Send DELETE request to /pet/{petId}",
+      "descriptor": {
+        "configuredProperties": {
+          "operationId": "deletePet"
+        },
+        "connectorId": "_id_",
+        "inputDataShape": {
+          "description": "API request payload",
+          "kind": "json-schema",
+          "metadata": {
+            "unified": "true"
+          },
+          "name": "Request",
+          "specification": "{\"$schema\":\"http://json-schema.org/schema#\",\"type\":\"object\",\"$id\":\"io:syndesis:wrapped\",\"properties\":{\"parameters\":{\"type\":\"object\",\"properties\":{\"api_key\":{\"type\":\"string\",\"title\":\"api_key\"},\"petId\":{\"type\":\"integer\",\"title\":\"petId\",\"description\":\"Pet id to delete\"}}}}}"
+        },
+        "outputDataShape": {
+          "kind": "none"
+        }
+      },
+      "id": "_id_:deletePet",
+      "name": "Deletes a pet",
+      "pattern": "To",
+      "tags": [
+        "pet"
+      ]
+    },
+    {
+      "actionType": "connector",
+      "description": "Returns a single pet",
+      "descriptor": {
+        "configuredProperties": {
+          "operationId": "getPetById"
+        },
+        "connectorId": "_id_",
+        "inputDataShape": {
+          "description": "API request payload",
+          "kind": "json-schema",
+          "metadata": {
+            "unified": "true"
+          },
+          "name": "Request",
+          "specification": "{\"$schema\":\"http://json-schema.org/schema#\",\"type\":\"object\",\"$id\":\"io:syndesis:wrapped\",\"properties\":{\"parameters\":{\"type\":\"object\",\"properties\":{\"petId\":{\"type\":\"integer\",\"title\":\"petId\",\"description\":\"ID of pet to return\"}}}}}"
+        },
+        "outputDataShape": {
+          "description": "API response payload",
+          "kind": "xml-schema",
+          "metadata": {
+            "unified": "true"
+          },
+          "name": "Response",
+          "specification": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<d:SchemaSet xmlns:d=\"http://atlasmap.io/xml/schemaset/v2\" xmlns:xsd=\"http://www.w3.org/2001/XMLSchema\"><xsd:schema><xsd:element name=\"Pet\"><xsd:complexType><xsd:sequence><xsd:element name=\"Category\"><xsd:complexType><xsd:sequence><xsd:element name=\"id\" type=\"xsd:integer\"/><xsd:element name=\"name\" type=\"xsd:string\"/></xsd:sequence></xsd:complexType></xsd:element><xsd:element name=\"id\" type=\"xsd:integer\"/><xsd:element name=\"name\" type=\"xsd:string\"/><xsd:element name=\"photoUrl\"><xsd:complexType><xsd:sequence><xsd:element name=\"photoUrl\" type=\"xsd:string\" maxOccurs=\"unbounded\" minOccurs=\"0\"/></xsd:sequence></xsd:complexType></xsd:element><xsd:element name=\"status\" type=\"xsd:string\"/><xsd:element name=\"tag\"><xsd:complexType><xsd:sequence><xsd:element name=\"Tag\" maxOccurs=\"unbounded\" minOccurs=\"0\"><xsd:complexType><xsd:sequence><xsd:element name=\"id\" type=\"xsd:integer\"/><xsd:element name=\"name\" type=\"xsd:string\"/></xsd:sequence></xsd:complexType></xsd:element></xsd:sequence></xsd:complexType></xsd:element></xsd:sequence></xsd:complexType></xsd:element></xsd:schema></d:SchemaSet>"
+        }
+      },
+      "id": "_id_:getPetById",
+      "name": "Find pet by ID",
+      "pattern": "To",
+      "tags": [
+        "pet"
+      ]
+    },
+    {
+      "actionType": "connector",
+      "description": "Multiple status values can be provided with comma separated strings",
+      "descriptor": {
+        "configuredProperties": {
+          "operationId": "findPetsByStatus"
+        },
+        "connectorId": "_id_",
+        "inputDataShape": {
+          "description": "API request payload",
+          "kind": "json-schema",
+          "metadata": {
+            "unified": "true"
+          },
+          "name": "Request",
+          "specification": "{\"$schema\":\"http://json-schema.org/schema#\",\"type\":\"object\",\"$id\":\"io:syndesis:wrapped\",\"properties\":{\"parameters\":{\"type\":\"object\",\"properties\":{\"status\":{\"type\":\"array\",\"title\":\"status\",\"description\":\"Status values that need to be considered for filter\",\"items\":{\"type\":\"string\",\"enum\":[\"available\",\"pending\",\"sold\"]}}}}}}"
+        },
+        "outputDataShape": {
+          "description": "API response payload",
+          "kind": "xml-schema",
+          "metadata": {
+            "unified": "true"
+          },
+          "name": "Response",
+          "specification": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<d:SchemaSet xmlns:d=\"http://atlasmap.io/xml/schemaset/v2\" xmlns:xsd=\"http://www.w3.org/2001/XMLSchema\"><xsd:schema><xsd:element name=\"Pets\"><xsd:complexType><xsd:sequence><xsd:element name=\"Pet\" maxOccurs=\"unbounded\" minOccurs=\"0\"><xsd:complexType><xsd:sequence><xsd:element name=\"Category\"><xsd:complexType><xsd:sequence><xsd:element name=\"id\" type=\"xsd:integer\"/><xsd:element name=\"name\" type=\"xsd:string\"/></xsd:sequence></xsd:complexType></xsd:element><xsd:element name=\"id\" type=\"xsd:integer\"/><xsd:element name=\"name\" type=\"xsd:string\"/><xsd:element name=\"photoUrl\"><xsd:complexType><xsd:sequence><xsd:element name=\"photoUrl\" type=\"xsd:string\" maxOccurs=\"unbounded\" minOccurs=\"0\"/></xsd:sequence></xsd:complexType></xsd:element><xsd:element name=\"status\" type=\"xsd:string\"/><xsd:element name=\"tag\"><xsd:complexType><xsd:sequence><xsd:element name=\"Tag\" maxOccurs=\"unbounded\" minOccurs=\"0\"><xsd:complexType><xsd:sequence><xsd:element name=\"id\" type=\"xsd:integer\"/><xsd:element name=\"name\" type=\"xsd:string\"/></xsd:sequence></xsd:complexType></xsd:element></xsd:sequence></xsd:complexType></xsd:element></xsd:sequence></xsd:complexType></xsd:element></xsd:sequence></xsd:complexType></xsd:element></xsd:schema></d:SchemaSet>"
+        }
+      },
+      "id": "_id_:findPetsByStatus",
+      "name": "Finds Pets by status",
+      "pattern": "To",
+      "tags": [
+        "pet"
+      ]
+    },
+    {
+      "actionType": "connector",
+      "description": "Muliple tags can be provided with comma separated strings. Use tag1, tag2, tag3 for testing.",
+      "descriptor": {
+        "configuredProperties": {
+          "operationId": "findPetsByTags"
+        },
+        "connectorId": "_id_",
+        "inputDataShape": {
+          "description": "API request payload",
+          "kind": "json-schema",
+          "metadata": {
+            "unified": "true"
+          },
+          "name": "Request",
+          "specification": "{\"$schema\":\"http://json-schema.org/schema#\",\"type\":\"object\",\"$id\":\"io:syndesis:wrapped\",\"properties\":{\"parameters\":{\"type\":\"object\",\"properties\":{\"tags\":{\"type\":\"array\",\"title\":\"tags\",\"description\":\"Tags to filter by\",\"items\":{\"type\":\"string\"}}}}}}"
+        },
+        "outputDataShape": {
+          "description": "API response payload",
+          "kind": "xml-schema",
+          "metadata": {
+            "unified": "true"
+          },
+          "name": "Response",
+          "specification": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<d:SchemaSet xmlns:d=\"http://atlasmap.io/xml/schemaset/v2\" xmlns:xsd=\"http://www.w3.org/2001/XMLSchema\"><xsd:schema><xsd:element name=\"Pet\" maxOccurs=\"unbounded\" minOccurs=\"0\"><xsd:complexType><xsd:sequence><xsd:element name=\"Category\"><xsd:complexType><xsd:sequence><xsd:element name=\"id\" type=\"xsd:integer\"/><xsd:element name=\"name\" type=\"xsd:string\"/></xsd:sequence></xsd:complexType></xsd:element><xsd:element name=\"id\" type=\"xsd:integer\"/><xsd:element name=\"name\" type=\"xsd:string\"/><xsd:element name=\"photoUrl\"><xsd:complexType><xsd:sequence><xsd:element name=\"photoUrl\" type=\"xsd:string\" maxOccurs=\"unbounded\" minOccurs=\"0\"/></xsd:sequence></xsd:complexType></xsd:element><xsd:element name=\"status\" type=\"xsd:string\"/><xsd:element name=\"tag\"><xsd:complexType><xsd:sequence><xsd:element name=\"Tag\" maxOccurs=\"unbounded\" minOccurs=\"0\"><xsd:complexType><xsd:sequence><xsd:element name=\"id\" type=\"xsd:integer\"/><xsd:element name=\"name\" type=\"xsd:string\"/></xsd:sequence></xsd:complexType></xsd:element></xsd:sequence></xsd:complexType></xsd:element></xsd:sequence></xsd:complexType></xsd:element></xsd:schema></d:SchemaSet>"
+        }
+      },
+      "id": "_id_:findPetsByTags",
+      "name": "Finds Pets by tags",
+      "pattern": "To",
+      "tags": [
+        "pet"
+      ]
+    },
+    {
+      "actionType": "connector",
+      "description": "Send PUT request to /pet",
+      "descriptor": {
+        "configuredProperties": {
+          "operationId": "updatePet"
+        },
+        "connectorId": "_id_",
+        "inputDataShape": {
+          "description": "API request payload",
+          "kind": "xml-schema",
+          "metadata": {
+            "unified": "true"
+          },
+          "name": "Request",
+          "specification": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<d:SchemaSet xmlns:d=\"http://atlasmap.io/xml/schemaset/v2\" xmlns:xsd=\"http://www.w3.org/2001/XMLSchema\"><xsd:schema targetNamespace=\"http://syndesis.io/v1/swagger-connector-template/request\" elementFormDefault=\"qualified\"><xsd:element name=\"request\"><xsd:complexType><xsd:sequence><xsd:element name=\"body\"><xsd:complexType><xsd:sequence><xsd:element ref=\"Pet\"/></xsd:sequence></xsd:complexType></xsd:element></xsd:sequence></xsd:complexType></xsd:element></xsd:schema><d:AdditionalSchemas><xsd:schema><xsd:element name=\"Pet\"><xsd:complexType><xsd:sequence><xsd:element name=\"Category\"><xsd:complexType><xsd:sequence><xsd:element name=\"id\" type=\"xsd:integer\"/><xsd:element name=\"name\" type=\"xsd:string\"/></xsd:sequence></xsd:complexType></xsd:element><xsd:element name=\"id\" type=\"xsd:integer\"/><xsd:element name=\"name\" type=\"xsd:string\"/><xsd:element name=\"photoUrl\"><xsd:complexType><xsd:sequence><xsd:element name=\"photoUrl\" type=\"xsd:string\" maxOccurs=\"unbounded\" minOccurs=\"0\"/></xsd:sequence></xsd:complexType></xsd:element><xsd:element name=\"status\" type=\"xsd:string\"/><xsd:element name=\"tag\"><xsd:complexType><xsd:sequence><xsd:element name=\"Tag\" maxOccurs=\"unbounded\" minOccurs=\"0\"><xsd:complexType><xsd:sequence><xsd:element name=\"id\" type=\"xsd:integer\"/><xsd:element name=\"name\" type=\"xsd:string\"/></xsd:sequence></xsd:complexType></xsd:element></xsd:sequence></xsd:complexType></xsd:element></xsd:sequence></xsd:complexType></xsd:element></xsd:schema></d:AdditionalSchemas></d:SchemaSet>"
+        },
+        "outputDataShape": {
+          "kind": "none"
+        }
+      },
+      "id": "_id_:updatePet",
+      "name": "Update an existing pet",
+      "pattern": "To",
+      "tags": [
+        "pet"
+      ]
+    },
+    {
+      "actionType": "connector",
+      "description": "Send POST request to /pet/{petId}",
+      "descriptor": {
+        "configuredProperties": {
+          "operationId": "updatePetWithForm"
+        },
+        "connectorId": "_id_",
+        "inputDataShape": {
+          "description": "API request payload",
+          "kind": "json-schema",
+          "metadata": {
+            "unified": "true"
+          },
+          "name": "Request",
+          "specification": "{\"$schema\":\"http://json-schema.org/schema#\",\"type\":\"object\",\"$id\":\"io:syndesis:wrapped\",\"properties\":{\"parameters\":{\"type\":\"object\",\"properties\":{\"petId\":{\"type\":\"integer\",\"title\":\"petId\",\"description\":\"ID of pet that needs to be updated\"},\"name\":{\"type\":\"string\",\"title\":\"name\",\"description\":\"Updated name of the pet\"},\"status\":{\"type\":\"string\",\"title\":\"status\",\"description\":\"Updated status of the pet\"}}}}}"
+        },
+        "outputDataShape": {
+          "kind": "none"
+        }
+      },
+      "id": "_id_:updatePetWithForm",
+      "name": "Updates a pet in the store with form data",
+      "pattern": "To",
+      "tags": [
+        "pet"
+      ]
+    },
+    {
+      "actionType": "connector",
+      "description": "Send POST request to /pet/{petId}/uploadImage",
+      "descriptor": {
+        "configuredProperties": {
+          "operationId": "uploadFile"
+        },
+        "connectorId": "_id_",
+        "inputDataShape": {
+          "description": "API request payload",
+          "kind": "json-schema",
+          "metadata": {
+            "unified": "true"
+          },
+          "name": "Request",
+          "specification": "{\"$schema\":\"http://json-schema.org/schema#\",\"type\":\"object\",\"$id\":\"io:syndesis:wrapped\",\"properties\":{\"parameters\":{\"type\":\"object\",\"properties\":{\"petId\":{\"type\":\"integer\",\"title\":\"petId\",\"description\":\"ID of pet to update\"},\"additionalMetadata\":{\"type\":\"string\",\"title\":\"additionalMetadata\",\"description\":\"Additional data to pass to server\"}}}}}"
+        },
+        "outputDataShape": {
+          "description": "API response payload",
+          "kind": "xml-schema",
+          "metadata": {
+            "unified": "true"
+          },
+          "name": "Response",
+          "specification": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<d:SchemaSet xmlns:d=\"http://atlasmap.io/xml/schemaset/v2\" xmlns:xsd=\"http://www.w3.org/2001/XMLSchema\"><xsd:schema><xsd:element><xsd:complexType><xsd:sequence><xsd:element name=\"code\" type=\"xsd:integer\"/><xsd:element name=\"message\" type=\"xsd:string\"/><xsd:element name=\"type\" type=\"xsd:string\"/></xsd:sequence></xsd:complexType></xsd:element></xsd:schema></d:SchemaSet>"
+        }
+      },
+      "id": "_id_:uploadFile",
+      "name": "uploads an image",
+      "pattern": "To",
+      "tags": [
+        "pet"
+      ]
+    },
+    {
+      "actionType": "connector",
+      "description": "For valid response try integer IDs with positive integer value. Negative or non-integer values will generate API errors",
+      "descriptor": {
+        "configuredProperties": {
+          "operationId": "deleteOrder"
+        },
+        "connectorId": "_id_",
+        "inputDataShape": {
+          "description": "API request payload",
+          "kind": "json-schema",
+          "metadata": {
+            "unified": "true"
+          },
+          "name": "Request",
+          "specification": "{\"$schema\":\"http://json-schema.org/schema#\",\"type\":\"object\",\"$id\":\"io:syndesis:wrapped\",\"properties\":{\"parameters\":{\"type\":\"object\",\"properties\":{\"orderId\":{\"type\":\"integer\",\"title\":\"orderId\",\"description\":\"ID of the order that needs to be deleted\"}}}}}"
+        },
+        "outputDataShape": {
+          "kind": "none"
+        }
+      },
+      "id": "_id_:deleteOrder",
+      "name": "Delete purchase order by ID",
+      "pattern": "To",
+      "tags": [
+        "store"
+      ]
+    },
+    {
+      "actionType": "connector",
+      "description": "For valid response try integer IDs with value >= 1 and <= 10. Other values will generated exceptions",
+      "descriptor": {
+        "configuredProperties": {
+          "operationId": "getOrderById"
+        },
+        "connectorId": "_id_",
+        "inputDataShape": {
+          "description": "API request payload",
+          "kind": "json-schema",
+          "metadata": {
+            "unified": "true"
+          },
+          "name": "Request",
+          "specification": "{\"$schema\":\"http://json-schema.org/schema#\",\"type\":\"object\",\"$id\":\"io:syndesis:wrapped\",\"properties\":{\"parameters\":{\"type\":\"object\",\"properties\":{\"orderId\":{\"type\":\"integer\",\"title\":\"orderId\",\"description\":\"ID of pet that needs to be fetched\"}}}}}"
+        },
+        "outputDataShape": {
+          "description": "API response payload",
+          "kind": "xml-schema",
+          "metadata": {
+            "unified": "true"
+          },
+          "name": "Response",
+          "specification": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<d:SchemaSet xmlns:d=\"http://atlasmap.io/xml/schemaset/v2\" xmlns:xsd=\"http://www.w3.org/2001/XMLSchema\"><xsd:schema><xsd:element name=\"Order\"><xsd:complexType><xsd:sequence><xsd:element name=\"complete\" type=\"xsd:boolean\"/><xsd:element name=\"id\" type=\"xsd:integer\"/><xsd:element name=\"petId\" type=\"xsd:integer\"/><xsd:element name=\"quantity\" type=\"xsd:integer\"/><xsd:element name=\"shipDate\" type=\"xsd:string\"/><xsd:element name=\"status\" type=\"xsd:string\"/></xsd:sequence></xsd:complexType></xsd:element></xsd:schema></d:SchemaSet>"
+        }
+      },
+      "id": "_id_:getOrderById",
+      "name": "Find purchase order by ID",
+      "pattern": "To",
+      "tags": [
+        "store"
+      ]
+    },
+    {
+      "actionType": "connector",
+      "description": "Send POST request to /store/order",
+      "descriptor": {
+        "configuredProperties": {
+          "operationId": "placeOrder"
+        },
+        "connectorId": "_id_",
+        "inputDataShape": {
+          "description": "API request payload",
+          "kind": "json-schema",
+          "metadata": {
+            "unified": "true"
+          },
+          "name": "Request",
+          "specification": "{\"$schema\":\"http://json-schema.org/schema#\",\"type\":\"object\",\"$id\":\"io:syndesis:wrapped\",\"properties\":{\"body\":{\"type\":\"object\",\"properties\":{\"complete\":{\"default\":false,\"type\":\"boolean\"},\"id\":{\"type\":\"integer\"},\"petId\":{\"type\":\"integer\"},\"quantity\":{\"type\":\"integer\"},\"shipDate\":{\"format\":\"date-time\",\"type\":\"string\"},\"status\":{\"description\":\"Order Status\",\"enum\":[\"placed\",\"approved\",\"delivered\"],\"type\":\"string\"}},\"xml\":{\"name\":\"Order\"}}}}"
+        },
+        "outputDataShape": {
+          "description": "API response payload",
+          "kind": "xml-schema",
+          "metadata": {
+            "unified": "true"
+          },
+          "name": "Response",
+          "specification": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<d:SchemaSet xmlns:d=\"http://atlasmap.io/xml/schemaset/v2\" xmlns:xsd=\"http://www.w3.org/2001/XMLSchema\"><xsd:schema><xsd:element name=\"Order\"><xsd:complexType><xsd:sequence><xsd:element name=\"complete\" type=\"xsd:boolean\"/><xsd:element name=\"id\" type=\"xsd:integer\"/><xsd:element name=\"petId\" type=\"xsd:integer\"/><xsd:element name=\"quantity\" type=\"xsd:integer\"/><xsd:element name=\"shipDate\" type=\"xsd:string\"/><xsd:element name=\"status\" type=\"xsd:string\"/></xsd:sequence></xsd:complexType></xsd:element></xsd:schema></d:SchemaSet>"
+        }
+      },
+      "id": "_id_:placeOrder",
+      "name": "Place an order for a pet",
+      "pattern": "To",
+      "tags": [
+        "store"
+      ]
+    },
+    {
+      "actionType": "connector",
+      "description": "Returns a map of status codes to quantities",
+      "descriptor": {
+        "configuredProperties": {
+          "operationId": "getInventory"
+        },
+        "connectorId": "_id_",
+        "inputDataShape": {
+          "kind": "none"
+        },
+        "outputDataShape": {
+          "kind": "none"
+        }
+      },
+      "id": "_id_:getInventory",
+      "name": "Returns pet inventories by status",
+      "pattern": "To",
+      "tags": [
+        "store"
+      ]
+    },
+    {
+      "actionType": "connector",
+      "description": "This can only be done by the logged in user.",
+      "descriptor": {
+        "configuredProperties": {
+          "operationId": "createUser"
+        },
+        "connectorId": "_id_",
+        "inputDataShape": {
+          "description": "API request payload",
+          "kind": "json-schema",
+          "metadata": {
+            "unified": "true"
+          },
+          "name": "Request",
+          "specification": "{\"$schema\":\"http://json-schema.org/schema#\",\"type\":\"object\",\"$id\":\"io:syndesis:wrapped\",\"properties\":{\"body\":{\"type\":\"object\",\"properties\":{\"email\":{\"type\":\"string\"},\"firstName\":{\"type\":\"string\"},\"id\":{\"type\":\"integer\"},\"lastName\":{\"type\":\"string\"},\"password\":{\"type\":\"string\"},\"phone\":{\"type\":\"string\"},\"userStatus\":{\"description\":\"User Status\",\"type\":\"integer\"},\"username\":{\"type\":\"string\"}},\"xml\":{\"name\":\"User\"}}}}"
+        },
+        "outputDataShape": {
+          "kind": "none"
+        }
+      },
+      "id": "_id_:createUser",
+      "name": "Create user",
+      "pattern": "To",
+      "tags": [
+        "user"
+      ]
+    },
+    {
+      "actionType": "connector",
+      "description": "Send POST request to /user/createWithArray",
+      "descriptor": {
+        "configuredProperties": {
+          "operationId": "createUsersWithArrayInput"
+        },
+        "connectorId": "_id_",
+        "inputDataShape": {
+          "description": "API request payload",
+          "kind": "json-schema",
+          "metadata": {
+            "unified": "true"
+          },
+          "name": "Request",
+          "specification": "{\"$schema\":\"http://json-schema.org/schema#\",\"type\":\"object\",\"$id\":\"io:syndesis:wrapped\",\"properties\":{\"body\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"email\":{\"type\":\"string\"},\"firstName\":{\"type\":\"string\"},\"id\":{\"type\":\"integer\"},\"lastName\":{\"type\":\"string\"},\"password\":{\"type\":\"string\"},\"phone\":{\"type\":\"string\"},\"userStatus\":{\"description\":\"User Status\",\"type\":\"integer\"},\"username\":{\"type\":\"string\"}},\"xml\":{\"name\":\"User\"}}}}}"
+        },
+        "outputDataShape": {
+          "kind": "none"
+        }
+      },
+      "id": "_id_:createUsersWithArrayInput",
+      "name": "Creates list of users with given input array",
+      "pattern": "To",
+      "tags": [
+        "user"
+      ]
+    },
+    {
+      "actionType": "connector",
+      "description": "Send POST request to /user/createWithList",
+      "descriptor": {
+        "configuredProperties": {
+          "operationId": "createUsersWithListInput"
+        },
+        "connectorId": "_id_",
+        "inputDataShape": {
+          "description": "API request payload",
+          "kind": "json-schema",
+          "metadata": {
+            "unified": "true"
+          },
+          "name": "Request",
+          "specification": "{\"$schema\":\"http://json-schema.org/schema#\",\"type\":\"object\",\"$id\":\"io:syndesis:wrapped\",\"properties\":{\"body\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"email\":{\"type\":\"string\"},\"firstName\":{\"type\":\"string\"},\"id\":{\"type\":\"integer\"},\"lastName\":{\"type\":\"string\"},\"password\":{\"type\":\"string\"},\"phone\":{\"type\":\"string\"},\"userStatus\":{\"description\":\"User Status\",\"type\":\"integer\"},\"username\":{\"type\":\"string\"}},\"xml\":{\"name\":\"User\"}}}}}"
+        },
+        "outputDataShape": {
+          "kind": "none"
+        }
+      },
+      "id": "_id_:createUsersWithListInput",
+      "name": "Creates list of users with given input array",
+      "pattern": "To",
+      "tags": [
+        "user"
+      ]
+    },
+    {
+      "actionType": "connector",
+      "description": "This can only be done by the logged in user.",
+      "descriptor": {
+        "configuredProperties": {
+          "operationId": "deleteUser"
+        },
+        "connectorId": "_id_",
+        "inputDataShape": {
+          "description": "API request payload",
+          "kind": "json-schema",
+          "metadata": {
+            "unified": "true"
+          },
+          "name": "Request",
+          "specification": "{\"$schema\":\"http://json-schema.org/schema#\",\"type\":\"object\",\"$id\":\"io:syndesis:wrapped\",\"properties\":{\"parameters\":{\"type\":\"object\",\"properties\":{\"username\":{\"type\":\"string\",\"title\":\"username\",\"description\":\"The name that needs to be deleted\"}}}}}"
+        },
+        "outputDataShape": {
+          "kind": "none"
+        }
+      },
+      "id": "_id_:deleteUser",
+      "name": "Delete user",
+      "pattern": "To",
+      "tags": [
+        "user"
+      ]
+    },
+    {
+      "actionType": "connector",
+      "description": "Send GET request to /user/{username}",
+      "descriptor": {
+        "configuredProperties": {
+          "operationId": "getUserByName"
+        },
+        "connectorId": "_id_",
+        "inputDataShape": {
+          "description": "API request payload",
+          "kind": "json-schema",
+          "metadata": {
+            "unified": "true"
+          },
+          "name": "Request",
+          "specification": "{\"$schema\":\"http://json-schema.org/schema#\",\"type\":\"object\",\"$id\":\"io:syndesis:wrapped\",\"properties\":{\"parameters\":{\"type\":\"object\",\"properties\":{\"username\":{\"type\":\"string\",\"title\":\"username\",\"description\":\"The name that needs to be fetched. Use user1 for testing.\"}}}}}"
+        },
+        "outputDataShape": {
+          "description": "API response payload",
+          "kind": "xml-schema",
+          "metadata": {
+            "unified": "true"
+          },
+          "name": "Response",
+          "specification": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<d:SchemaSet xmlns:d=\"http://atlasmap.io/xml/schemaset/v2\" xmlns:xsd=\"http://www.w3.org/2001/XMLSchema\"><xsd:schema><xsd:element name=\"User\"><xsd:complexType><xsd:sequence><xsd:element name=\"email\" type=\"xsd:string\"/><xsd:element name=\"firstName\" type=\"xsd:string\"/><xsd:element name=\"id\" type=\"xsd:integer\"/><xsd:element name=\"lastName\" type=\"xsd:string\"/><xsd:element name=\"password\" type=\"xsd:string\"/><xsd:element name=\"phone\" type=\"xsd:string\"/><xsd:element name=\"userStatus\" type=\"xsd:integer\"/><xsd:element name=\"username\" type=\"xsd:string\"/></xsd:sequence></xsd:complexType></xsd:element></xsd:schema></d:SchemaSet>"
+        }
+      },
+      "id": "_id_:getUserByName",
+      "name": "Get user by user name",
+      "pattern": "To",
+      "tags": [
+        "user"
+      ]
+    },
+    {
+      "actionType": "connector",
+      "description": "Send GET request to /user/logout",
+      "descriptor": {
+        "configuredProperties": {
+          "operationId": "logoutUser"
+        },
+        "connectorId": "_id_",
+        "inputDataShape": {
+          "kind": "none"
+        },
+        "outputDataShape": {
+          "kind": "none"
+        }
+      },
+      "id": "_id_:logoutUser",
+      "name": "Logs out current logged in user session",
+      "pattern": "To",
+      "tags": [
+        "user"
+      ]
+    },
+    {
+      "actionType": "connector",
+      "description": "Send GET request to /user/login",
+      "descriptor": {
+        "configuredProperties": {
+          "operationId": "loginUser"
+        },
+        "connectorId": "_id_",
+        "inputDataShape": {
+          "description": "API request payload",
+          "kind": "json-schema",
+          "metadata": {
+            "unified": "true"
+          },
+          "name": "Request",
+          "specification": "{\"$schema\":\"http://json-schema.org/schema#\",\"type\":\"object\",\"$id\":\"io:syndesis:wrapped\",\"properties\":{\"parameters\":{\"type\":\"object\",\"properties\":{\"username\":{\"type\":\"string\",\"title\":\"username\",\"description\":\"The user name for login\"},\"password\":{\"type\":\"string\",\"title\":\"password\",\"description\":\"The password for login in clear text\"}}}}}"
+        },
+        "outputDataShape": {
+          "description": "API response payload",
+          "kind": "json-schema",
+          "metadata": {
+            "unified": "true"
+          },
+          "name": "Response",
+          "specification": "{\"$schema\":\"http://json-schema.org/schema#\",\"type\":\"object\",\"$id\":\"io:syndesis:wrapped\",\"properties\":{\"body\":{\"type\":\"string\"}}}"
+        }
+      },
+      "id": "_id_:loginUser",
+      "name": "Logs user into the system",
+      "pattern": "To",
+      "tags": [
+        "user"
+      ]
+    },
+    {
+      "actionType": "connector",
+      "description": "This can only be done by the logged in user.",
+      "descriptor": {
+        "configuredProperties": {
+          "operationId": "updateUser"
+        },
+        "connectorId": "_id_",
+        "inputDataShape": {
+          "description": "API request payload",
+          "kind": "json-schema",
+          "metadata": {
+            "unified": "true"
+          },
+          "name": "Request",
+          "specification": "{\"$schema\":\"http://json-schema.org/schema#\",\"type\":\"object\",\"$id\":\"io:syndesis:wrapped\",\"properties\":{\"parameters\":{\"type\":\"object\",\"properties\":{\"username\":{\"type\":\"string\",\"title\":\"username\",\"description\":\"name that need to be updated\"}}},\"body\":{\"type\":\"object\",\"properties\":{\"email\":{\"type\":\"string\"},\"firstName\":{\"type\":\"string\"},\"id\":{\"type\":\"integer\"},\"lastName\":{\"type\":\"string\"},\"password\":{\"type\":\"string\"},\"phone\":{\"type\":\"string\"},\"userStatus\":{\"description\":\"User Status\",\"type\":\"integer\"},\"username\":{\"type\":\"string\"}},\"xml\":{\"name\":\"User\"}}}}"
+        },
+        "outputDataShape": {
+          "kind": "none"
+        }
+      },
+      "id": "_id_:updateUser",
+      "name": "Updated user",
+      "pattern": "To",
+      "tags": [
+        "user"
+      ]
+    }
+  ],
+  "componentScheme": "rest-swagger",
+  "configuredProperties": {
+    "basePath": "/v2",
+    "componentName": "connector-rest-swagger-http4",
+    "host": "http://petstore.swagger.io",
+    "specification": "{\"swagger\":\"2.0\",\"host\":\"petstore.swagger.io\",\"basePath\":\"/v2\",\"schemes\":[\"http\"],\"paths\":{\"/pet\":{\"post\":{\"operationId\":\"addPet\",\"consumes\":[\"application/xml\"],\"produces\":[\"application/xml\"],\"security\":[{\"petstore_auth\":[\"write:pets\",\"read:pets\"]}]},\"put\":{\"operationId\":\"updatePet\",\"consumes\":[\"application/xml\"],\"produces\":[\"application/xml\"],\"security\":[{\"petstore_auth\":[\"write:pets\",\"read:pets\"]}]}},\"/pet/findByStatus\":{\"get\":{\"operationId\":\"findPetsByStatus\",\"produces\":[\"application/xml\"],\"parameters\":[{\"name\":\"status\",\"in\":\"query\",\"items\":{\"type\":\"string\",\"default\":\"available\",\"enum\":[\"available\",\"pending\",\"sold\"]},\"collectionFormat\":\"multi\"}],\"security\":[{\"petstore_auth\":[\"write:pets\",\"read:pets\"]}]}},\"/pet/findByTags\":{\"get\":{\"operationId\":\"findPetsByTags\",\"produces\":[\"application/xml\"],\"parameters\":[{\"name\":\"tags\",\"in\":\"query\",\"items\":{\"type\":\"string\"},\"collectionFormat\":\"multi\"}],\"security\":[{\"petstore_auth\":[\"write:pets\",\"read:pets\"]}],\"deprecated\":true}},\"/pet/{petId}\":{\"get\":{\"operationId\":\"getPetById\",\"produces\":[\"application/xml\"],\"parameters\":[{\"name\":\"petId\",\"in\":\"path\"}],\"security\":[{\"api_key\":[]}]},\"post\":{\"operationId\":\"updatePetWithForm\",\"consumes\":[\"application/x-www-form-urlencoded\"],\"produces\":[\"application/xml\"],\"parameters\":[{\"name\":\"petId\",\"in\":\"path\"}],\"security\":[{\"petstore_auth\":[\"write:pets\",\"read:pets\"]}]},\"delete\":{\"operationId\":\"deletePet\",\"produces\":[\"application/xml\"],\"parameters\":[{\"name\":\"petId\",\"in\":\"path\"}],\"security\":[{\"petstore_auth\":[\"write:pets\",\"read:pets\"]}]}},\"/pet/{petId}/uploadImage\":{\"post\":{\"operationId\":\"uploadFile\",\"consumes\":[\"multipart/form-data\"],\"produces\":[\"application/xml\"],\"parameters\":[{\"name\":\"petId\",\"in\":\"path\"}],\"security\":[{\"petstore_auth\":[\"write:pets\",\"read:pets\"]}]}},\"/store/inventory\":{\"get\":{\"operationId\":\"getInventory\",\"produces\":[\"application/xml\"],\"security\":[{\"api_key\":[]}]}},\"/store/order\":{\"post\":{\"operationId\":\"placeOrder\",\"produces\":[\"application/xml\"]}},\"/store/order/{orderId}\":{\"get\":{\"operationId\":\"getOrderById\",\"produces\":[\"application/xml\"],\"parameters\":[{\"name\":\"orderId\",\"in\":\"path\",\"maximum\":1E+1,\"minimum\":1}]},\"delete\":{\"operationId\":\"deleteOrder\",\"produces\":[\"application/xml\"],\"parameters\":[{\"name\":\"orderId\",\"in\":\"path\",\"minimum\":1}]}},\"/user\":{\"post\":{\"operationId\":\"createUser\",\"produces\":[\"application/xml\"]}},\"/user/createWithArray\":{\"post\":{\"operationId\":\"createUsersWithArrayInput\",\"produces\":[\"application/xml\"]}},\"/user/createWithList\":{\"post\":{\"operationId\":\"createUsersWithListInput\",\"produces\":[\"application/xml\"]}},\"/user/login\":{\"get\":{\"operationId\":\"loginUser\",\"produces\":[\"text/plain\"],\"parameters\":[{\"name\":\"username\",\"in\":\"query\"},{\"name\":\"password\",\"in\":\"query\"}]}},\"/user/logout\":{\"get\":{\"operationId\":\"logoutUser\",\"produces\":[\"application/xml\"]}},\"/user/{username}\":{\"get\":{\"operationId\":\"getUserByName\",\"produces\":[\"application/xml\"],\"parameters\":[{\"name\":\"username\",\"in\":\"path\"}]},\"put\":{\"operationId\":\"updateUser\",\"produces\":[\"application/xml\"],\"parameters\":[{\"name\":\"username\",\"in\":\"path\"}]},\"delete\":{\"operationId\":\"deleteUser\",\"produces\":[\"application/xml\"],\"parameters\":[{\"name\":\"username\",\"in\":\"path\"}]}}},\"securityDefinitions\":{\"api_key\":{\"type\":\"apiKey\",\"name\":\"api_key\",\"in\":\"header\"},\"petstore_auth\":{\"type\":\"oauth2\",\"authorizationUrl\":\"http://petstore.swagger.io/oauth/dialog\",\"flow\":\"implicit\",\"scopes\":{\"read:pets\":\"read your pets\",\"write:pets\":\"modify pets in your account\"}}}}"
+  },
+  "connectorCustomizers": [
+    "io.syndesis.connector.rest.swagger.SpecificationResourceCustomizer",
+    "io.syndesis.connector.rest.swagger.AuthenticationCustomizer",
+    "io.syndesis.connector.rest.swagger.RequestCustomizer",
+    "io.syndesis.connector.rest.swagger.ResponseCustomizer"
+  ],
+  "connectorFactory": "io.syndesis.connector.rest.swagger.ConnectorFactory",
+  "connectorGroup": {
+    "id": "swagger-connector-template"
+  },
+  "connectorGroupId": "swagger-connector-template",
+  "dependencies": [
+    {
+      "id": "io.syndesis.connector:connector-rest-swagger:@project.version@",
+      "type": "MAVEN"
+    },
+    {
+      "id": "org.apache.camel:camel-rest-swagger:@camel.version@",
+      "type": "MAVEN"
+    },
+    {
+      "id": "org.apache.camel:camel-http4:@camel.version@",
+      "type": "MAVEN"
+    }
+  ],
+  "description": "This is a sample server Petstore server.  You can find out more about Swagger at [http://swagger.io](http://swagger.io) or on [irc.freenode.net, #swagger](http://swagger.io/irc/).  For this sample, you can use the api key `special-key` to test the authorization filters.",
+  "id": "_id_",
+  "name": "Swagger Petstore",
+  "properties": {
+    "authenticationParameterName": {
+      "defaultValue": "api_key",
+      "description": "Name of the API key parameter",
+      "displayName": "API key parameter name",
+      "javaType": "java.lang.String",
+      "order": 2,
+      "required": true,
+      "type": "hidden"
+    },
+    "authenticationParameterPlacement": {
+      "defaultValue": "header",
+      "displayName": "Placement of the API key parameter",
+      "javaType": "java.lang.String",
+      "order": 4,
+      "required": true,
+      "type": "hidden"
+    },
+    "authenticationParameterValue": {
+      "description": "Value of the API key authentication parameter",
+      "displayName": "API key",
+      "javaType": "java.lang.String",
+      "order": 3,
+      "required": true,
+      "secret": true,
+      "type": "string"
+    },
+    "authenticationType": {
+      "componentProperty": true,
+      "defaultValue": "apiKey:api_key",
+      "deprecated": false,
+      "description": "Type of authentication used to connect to the API",
+      "displayName": "Authentication Type",
+      "enum": [
+        {
+          "label": "API Key - api_key",
+          "value": "apiKey:api_key"
+        }
+      ],
+      "group": "producer",
+      "javaType": "java.lang.String",
+      "kind": "property",
+      "label": "producer",
+      "order": 1,
+      "required": false,
+      "secret": false,
+      "tags": [
+        "authentication-type"
+      ],
+      "type": "hidden"
+    },
+    "basePath": {
+      "componentProperty": true,
+      "defaultValue": "/v2",
+      "deprecated": false,
+      "description": "API basePath for example /v2. Default is unset if set overrides the value present in OpenAPI document.",
+      "displayName": "Base path",
+      "group": "producer",
+      "javaType": "java.lang.String",
+      "kind": "property",
+      "label": "producer",
+      "order": 11,
+      "required": true,
+      "secret": false,
+      "type": "string"
+    },
+    "host": {
+      "componentProperty": true,
+      "defaultValue": "http://petstore.swagger.io",
+      "deprecated": false,
+      "description": "Scheme hostname and port to direct the HTTP requests to in the form of https://hostname:port.",
+      "displayName": "Host",
+      "group": "producer",
+      "javaType": "java.lang.String",
+      "kind": "property",
+      "label": "producer",
+      "order": 10,
+      "required": true,
+      "secret": false,
+      "type": "string"
+    },
+    "specification": {
+      "componentProperty": true,
+      "deprecated": false,
+      "description": "OpenAPI document of the service",
+      "displayName": "Document",
+      "group": "producer",
+      "javaType": "java.lang.String",
+      "kind": "property",
+      "label": "producer",
+      "required": true,
+      "secret": false,
+      "tags": [
+        "upload",
+        "url"
+      ],
+      "type": "hidden"
+    }
+  },
+  "version": 1
+}
