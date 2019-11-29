@@ -1,0 +1,140 @@
+{
+  "actions": [
+    {
+      "actionType": "connector",
+      "description": "Simple Logger",
+      "descriptor": {
+        "componentScheme": "log",
+        "configuredProperties": {
+          "loggerName": "syndesis-log"
+        },
+        "inputDataShape": {
+          "kind": "none"
+        },
+        "outputDataShape": {
+          "kind": "none"
+        },
+        "propertyDefinitionSteps": [
+          {
+            "description": "Log Level",
+            "name": "level",
+            "properties": {
+              "level": {
+                "componentProperty": false,
+                "defaultValue": "INFO",
+                "deprecated": false,
+                "description": "Log Level.",
+                "displayName": "log level",
+                "enum": [
+                  {
+                    "label": "ERROR",
+                    "value": "ERROR"
+                  },
+                  {
+                    "label": "WARN",
+                    "value": "WARN"
+                  },
+                  {
+                    "label": "INFO",
+                    "value": "INFO"
+                  },
+                  {
+                    "label": "DEBUG",
+                    "value": "DEBUG"
+                  },
+                  {
+                    "label": "TRACE",
+                    "value": "TRACE"
+                  },
+                  {
+                    "label": "OFF",
+                    "value": "OFF"
+                  }
+                ],
+                "javaType": "java.lang.String",
+                "kind": "parameter",
+                "required": true,
+                "secret": false,
+                "tags": [],
+                "type": "string"
+              },
+              "showAll": {
+                "componentProperty": false,
+                "defaultValue": false,
+                "deprecated": false,
+                "description": "whether or not to log everything (very verbose).",
+                "displayName": "Log everything",
+                "enum": [],
+                "javaType": "boolean",
+                "kind": "parameter",
+                "required": true,
+                "secret": false,
+                "tags": [],
+                "type": "boolean"
+              },
+              "showBody": {
+                "componentProperty": false,
+                "defaultValue": true,
+                "deprecated": false,
+                "description": "whether or not to show Body content in the Log.",
+                "displayName": "Log Body",
+                "enum": [],
+                "javaType": "boolean",
+                "kind": "parameter",
+                "required": true,
+                "secret": false,
+                "tags": [],
+                "type": "boolean"
+              },
+              "showExchangeId": {
+                "componentProperty": false,
+                "defaultValue": true,
+                "deprecated": false,
+                "description": "whether or not to show Exchange Id in the Log.",
+                "displayName": "Log message Id",
+                "enum": [],
+                "javaType": "boolean",
+                "kind": "parameter",
+                "required": true,
+                "secret": false,
+                "tags": [],
+                "type": "boolean"
+              },
+              "showHeaders": {
+                "componentProperty": false,
+                "defaultValue": false,
+                "deprecated": false,
+                "description": "whether or not to show Headers in the Log.",
+                "displayName": "Log Headers",
+                "enum": [],
+                "javaType": "boolean",
+                "kind": "parameter",
+                "required": true,
+                "secret": false,
+                "tags": [],
+                "type": "boolean"
+              }
+            }
+          }
+        ]
+      },
+      "id": "io.syndesis:log-action",
+      "name": "Simple Logger",
+      "pattern": "To"
+    }
+  ],
+  "configuredProperties": {},
+  "dependencies": [
+    {
+      "id": "@project.groupId@:@project.artifactId@:@project.version@",
+      "type": "MAVEN"
+    }
+  ],
+  "description": "Log the exchange with different options",
+  "icon": "assets:log.svg",
+  "id": "log",
+  "metadata": {
+    "hide-from-connection-pages": true
+  },
+  "name": "Log"
+}

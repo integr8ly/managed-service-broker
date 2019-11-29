@@ -1,0 +1,99 @@
+// This module is included in these assemblies:
+// as_connecting-to-twitter.adoc
+
+[id='adding-twitter-connection-start_{context}']
+= Adding a Twitter connection to trigger integration execution
+
+In a simple integration, the start connection can be a Twitter 
+connection that triggers execution of the integration when 
+it finds certain tweets or direct messages.
+
+.Prerequisites
+* You created a Twitter connection.
+* You are creating or editing a simple integration and {prodname} is
+prompting you to choose the start connection.
+
+.Procedure
+
+. Click the Twitter
+connection that starts the integration. When the integration
+uses the selected connection to connect to Twitter, {prodname} uses the
+credentials defined in that connection.
+
+. Select the action that you want the connection to perform.
+A Twitter connection that you add to an integration performs only
+the action that you choose:
++
+*  *Mention* monitors Twitter for tweets that contain the Twitter 
+handle for the Twitter account that the connection is authorized to access.
+Upon finding such a tweet, the connection returns it to {prodname}, which triggers
+execution of the integration. 
+* *Retrieve* periodically polls Twitter for direct messages sent 
+to the Twitter account that the Twitter connection is authorized 
+to access. Upon finding such messages, the connection returns them to {prodname}, 
+which triggers execution of the integration.
+* *Search*  periodically polls Twitter for tweets that match criteria 
+that you specify. Upon finding such tweets, the connection returns them 
+to {prodname}, which triggers execution of the integration. 
+
+. Configure the action that you selected: 
++
+* *Mention* does not require any configuration. 
+* *Retrieve* 
+** *Count* has a default of 100 and you should not need to change 
+this value, which affects internal behavior. However, do not set 
+this value to less than 50 because doing so might decrease performance. 
++
+The *Retrieve* action always returns all previously unreturned 
+direct messages received in the last 30 days. If you do not select 
+*Ignore direct messages previously found*, then the *Retrieve* action 
+returns all messages that have been received in the last 30 days.
+
+** *Delay* is the period of time between polls. Twitter enforces
+rate limits, so you should not poll too often. The default 
+interval is 5 seconds. 
+** *Ignore direct messages previously found* returns only new 
+messages when selected. 
+
+* *Search*
+** *Delay* is the period of time between polls. Twitter enforces
+rate limits, so you should not poll too often. The default 
+interval is 5 seconds. 
+** *Ignore tweets previously found* returns only new 
+tweets when selected. 
+** *Query* is a Twitter-formatted search expression that specifies 
+the tweets that you want the connection to return. The following
+table provides examples of what you can enter. More details are in this 
+link:https://developer.twitter.com/en/docs/tweets/rules-and-filtering/overview/standard-operators.html[Twitter document for search operators].
++
+[cols="1,1"]
+|===
+
+|*Query*
+|*Results*
+
+|`My Product` 
+|Obtains tweets that contain both `My` and `Product`, 
+but not necessarily `My Product`.
+
+|`"My Product”` 
+|Obtains tweets that contain an instance of `My Product`.
+
+|`My OR Product`
+|Obtains tweets that contain an instance of `My` or `Product` or 
+an instance of each one. 
+
+|`My -Product`
+|Obtains tweets that contain an instance of `My` and do not contain 
+an instance of `Product`. 
+
+|`#MyProduct`
+|Obtains tweets that contain the `MyProduct` hashtag. 
+
+|===
+
+. Click *Next* to add the connection to the integration.
+
+.Result
+The integration now has a start connection and {prodname} is
+prompting you to choose the finish connection. 

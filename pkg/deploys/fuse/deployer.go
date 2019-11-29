@@ -4,9 +4,11 @@ import (
 	"archive/tar"
 	"compress/gzip"
 	"fmt"
+	synv1 "github.com/syndesisio/syndesis/install/operator/pkg/apis/syndesis/v1alpha1"
 	"io"
 	v1 "k8s.io/api/authentication/v1"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"net/http"
 	"os"
 	"os/exec"
@@ -15,7 +17,6 @@ import (
 
 	brokerapi "github.com/integr8ly/managed-service-broker/pkg/broker"
 	"github.com/integr8ly/managed-service-broker/pkg/clients/openshift"
-	fuseV1alpha1 "github.com/integr8ly/managed-service-broker/pkg/deploys/fuse/pkg/apis/syndesis/v1alpha1"
 	k8sClient "github.com/operator-framework/operator-sdk/pkg/k8sclient"
 	"github.com/operator-framework/operator-sdk/pkg/util/k8sutil"
 	"github.com/pkg/errors"
@@ -101,7 +102,7 @@ func (fd *FuseDeployer) Deploy(req *brokerapi.ProvisionRequest, async bool) (*br
 
 	return &brokerapi.ProvisionResponse{
 		Code:         http.StatusAccepted,
-		DashboardURL: "https://" + frt.Spec.RouteHostName,
+		DashboardURL: "https://" + frt.Spec.RouteHostname,
 		Operation:    "deploy",
 	}, nil
 }
@@ -186,17 +187,20 @@ func (fd *FuseDeployer) ServiceInstanceLastOperation(req *brokerapi.LastOperatio
 			return nil, err
 		}
 		if fr == nil {
-			return nil, apiErrors.NewNotFound(fuseV1alpha1.SchemeGroupResource, req.InstanceId)
+			return nil, apiErrors.NewNotFound(schema.GroupResource{
+				Group:    synv1.SchemeGroupVersion.Group,
+				Resource: "Syndesis",
+			}, req.InstanceId)
 		}
 
-		if fr.Status.Phase == fuseV1alpha1.SyndesisPhaseStartupFailed {
+		if fr.Status.Phase == synv1.SyndesisPhaseStartupFailed {
 			return &brokerapi.LastOperationResponse{
 				State:       brokerapi.StateFailed,
 				Description: fr.Status.Description,
 			}, nil
 		}
 
-		if fr.Status.Phase == fuseV1alpha1.SyndesisPhaseInstalled {
+		if fr.Status.Phase == synv1.SyndesisPhaseInstalled {
 			return &brokerapi.LastOperationResponse{
 				State:       brokerapi.StateSucceeded,
 				Description: fr.Status.Description,
@@ -227,7 +231,7 @@ func (fd *FuseDeployer) ServiceInstanceLastOperation(req *brokerapi.LastOperatio
 			return nil, err
 		}
 		if fr == nil {
-			return nil, apiErrors.NewNotFound(fuseV1alpha1.SchemeGroupResource, req.InstanceId)
+			return nil, apiErrors.NewNotFound(schema.GroupResource{Group: synv1.SchemeGroupVersion.Group, Resource: "Syndesis"}, req.InstanceId)
 		}
 
 		return &brokerapi.LastOperationResponse{
@@ -250,7 +254,7 @@ func (fd *FuseDeployer) createRoleBindings(namespace string, userInfo v1.UserInf
 }
 
 // Create the fuse custom resource template
-func (fd *FuseDeployer) createFuseCustomResourceTemplate(namespace, userNamespace, userID string, parameters map[string]interface{}) *fuseV1alpha1.Syndesis {
+func (fd *FuseDeployer) createFuseCustomResourceTemplate(namespace, userNamespace, userID string, parameters map[string]interface{}) *synv1.Syndesis {
 	integrationsLimit := 0
 	if parameters["limit"] != nil {
 		integrationsLimit = int(parameters["limit"].(float64))
@@ -258,14 +262,19 @@ func (fd *FuseDeployer) createFuseCustomResourceTemplate(namespace, userNamespac
 
 	fuseObj := getFuseObj(namespace, userNamespace, integrationsLimit)
 	fuseDashboardURL := fd.getRouteHostname(namespace)
-	fuseObj.Spec.RouteHostName = fuseDashboardURL
+	fuseObj.Spec.RouteHostname = fuseDashboardURL
 	fuseObj.Annotations["syndesis.io/created-by"] = userID
 
+	// Handle exposing via 3scale if management URL is set for 3scale
+	threescaleDashboardUrl := os.Getenv("THREESCALE_DASHBOARD_URL")
+	if threescaleDashboardUrl != "" {
+		fuseObj.Spec.Components.Server.Features.ManagementUrlFor3scale = threescaleDashboardUrl
+	}
 	return fuseObj
 }
 
 // Create the fuse custom resource
-func (fd *FuseDeployer) createFuseCustomResource(namespace string, fr *fuseV1alpha1.Syndesis) error {
+func (fd *FuseDeployer) createFuseCustomResource(namespace string, fr *synv1.Syndesis) error {
 	fuseClient, _, err := k8sClient.GetResourceClient("syndesis.io/v1alpha1", "Syndesis", namespace)
 	if err != nil {
 		return err
@@ -290,7 +299,7 @@ func (fd *FuseDeployer) getRouteHostname(namespace string) string {
 }
 
 // Get fuse resource in namespace
-func getFuse(ns string) (*fuseV1alpha1.Syndesis, error) {
+func getFuse(ns string) (*synv1.Syndesis, error) {
 	fuseClient, _, err := k8sClient.GetResourceClient("syndesis.io/v1alpha1", "Syndesis", ns)
 	if err != nil {
 		return nil, err
@@ -300,7 +309,7 @@ func getFuse(ns string) (*fuseV1alpha1.Syndesis, error) {
 	if err != nil {
 		return nil, err
 	}
-	fl := fuseV1alpha1.NewSyndesisList()
+	fl := &synv1.SyndesisList{}
 	if err := k8sutil.RuntimeObjectIntoRuntimeObject(u, fl); err != nil {
 		return nil, errors.Wrap(err, "failed to get the fuse resources")
 	}

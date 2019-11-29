@@ -1,0 +1,316 @@
+{
+  "version": 4,
+  "actions": [
+    {
+      "actionType": "connector",
+      "description": "Mongo DB producer",
+      "descriptor": {
+        "componentScheme": "mongodb3",
+        "connectorCustomizers": [
+          "io.syndesis.connector.mongo.MongoProducerCustomizer"
+        ],
+        "inputDataShape": {
+          "kind": "json-instance"
+        },
+        "outputDataShape": {
+          "kind": "json-instance"
+        },
+        "propertyDefinitionSteps": [
+          {
+            "description": "Producer configuration",
+            "name": "Database",
+            "properties": {
+              "collection": {
+                "deprecated": false,
+                "displayName": "Collection name",
+                "group": "common",
+                "javaType": "java.lang.String",
+                "kind": "path",
+                "labelHint": "Collection used by this operation",
+                "order": "1",
+                "required": true,
+                "secret": false,
+                "type": "string"
+              },
+              "operation": {
+                "deprecated": false,
+                "displayName": "Operation to perform",
+                "enum": [
+                  {
+                    "label": "Find by id",
+                    "value": "findById"
+                  },
+                  {
+                    "label": "Find all",
+                    "value": "findAll"
+                  },
+                  {
+                    "label": "Insert",
+                    "value": "insert"
+                  },
+                  {
+                    "label": "Save",
+                    "value": "save"
+                  },
+                  {
+                    "label": "Update",
+                    "value": "update"
+                  },
+                  {
+                    "label": "Remove",
+                    "value": "remove"
+                  },
+                  {
+                    "label": "Count",
+                    "value": "count"
+                  }
+                ],
+                "group": "common",
+                "javaType": "java.lang.String",
+                "kind": "property",
+                "labelHint": "Each operation may expect a different input and produce a different output. Please, refer to documentation",
+                "order": "2",
+                "required": true,
+                "secret": false,
+                "type": "string"
+              }
+            }
+          }
+        ]
+      },
+      "id": "io.syndesis.connector:connector-mongodb-producer",
+      "name": "Mongo producer",
+      "pattern": "To"
+    },
+    {
+      "actionType": "connector",
+      "description": "Mongo DB consumer",
+      "descriptor": {
+        "componentScheme": "mongodb3",
+        "inputDataShape": {
+          "kind": "none"
+        },
+        "outputDataShape": {
+          "kind": "json-instance"
+        },
+        "propertyDefinitionSteps": [
+          {
+            "description": "Consumer configuration",
+            "name": "Database",
+            "properties": {
+              "collection": {
+                "deprecated": false,
+                "displayName": "Collection name",
+                "group": "common",
+                "javaType": "java.lang.String",
+                "kind": "path",
+                "labelHint": "Collection to read documents from",
+                "order": "1",
+                "placeholder": "collection",
+                "required": true,
+                "secret": false,
+                "type": "string"
+              },
+              "tailTrackIncreasingField": {
+                "deprecated": false,
+                "displayName": "Collection field used to track incoming documents",
+                "group": "common",
+                "javaType": "java.lang.String",
+                "kind": "path",
+                "labelHint": "Property used to track new documents, usually an incremental id or timestamp",
+                "order": "2",
+                "placeholder": "_id",
+                "required": true,
+                "secret": false,
+                "type": "string"
+              },
+              "persistentTailTracking": {
+                "deprecated": false,
+                "displayName": "Persistent tracking enabled",
+                "group": "common",
+                "javaType": "boolean",
+                "kind": "path",
+                "labelHint": "Tick to enable persistent tracking",
+                "order": "3",
+                "placeholder": "false",
+                "required": false,
+                "secret": false,
+                "type": "boolean"
+              },
+              "persistentId": {
+                "deprecated": false,
+                "displayName": "Unique id to identify this tracking process",
+                "group": "common",
+                "javaType": "java.lang.String",
+                "kind": "path",
+                "labelHint": "Specify a different id if you have more than one tracking process in your integrations",
+                "order": "4",
+                "placeholder": "idTracker",
+                "required": false,
+                "secret": false,
+                "type": "string"
+              },
+              "tailTrackDb": {
+                "deprecated": false,
+                "displayName": "DB used to store tail tracking",
+                "group": "advanced",
+                "javaType": "java.lang.String",
+                "kind": "path",
+                "labelHint": "Database used to store the offset of this tailing process",
+                "order": "5",
+                "placeholder": "tailTrackDb",
+                "required": false,
+                "secret": false,
+                "type": "string"
+              },
+              "tailTrackCollection": {
+                "deprecated": false,
+                "displayName": "Collection used to store tail tracking",
+                "group": "advanced",
+                "javaType": "java.lang.String",
+                "kind": "path",
+                "labelHint": "Collection used to store the offset of this tailing process",
+                "order": "6",
+                "placeholder": "tailTrackCollection",
+                "required": false,
+                "secret": false,
+                "type": "string"
+              },
+              "tailTrackField": {
+                "deprecated": false,
+                "displayName": "Field used to store tail tracking",
+                "group": "advanced",
+                "javaType": "java.lang.String",
+                "kind": "path",
+                "labelHint": "Property used to store the offset of this tailing process",
+                "order": "7",
+                "placeholder": "tailTrackField",
+                "required": false,
+                "secret": false,
+                "type": "string"
+              }
+            }
+          }
+        ]
+      },
+      "id": "io.syndesis.connector:connector-mongodb-consumer",
+      "name": "Mongo consumer",
+      "pattern": "From"
+    }
+  ],
+  "configuredProperties": {},
+  "connectorCustomizers": [
+    "io.syndesis.connector.mongo.MongoClientCustomizer"
+  ],
+  "dependencies": [
+    {
+      "id": "@project.groupId@:@project.artifactId@:@project.version@",
+      "type": "MAVEN"
+    }
+  ],
+  "description": "Read and writes JSON-like documents.",
+  "icon": "assets:mongodb.png",
+  "id": "mongodb3",
+  "metadata": {
+    "tech-preview": true
+  },
+  "name": "MongoDB",
+  "properties": {
+    "host": {
+      "componentProperty": true,
+      "deprecated": false,
+      "displayName": "Database host(s)",
+      "group": "common",
+      "javaType": "java.lang.String",
+      "kind": "property",
+      "label": "",
+      "labelHint": "Comma separated list of databases belonging to the cluster.",
+      "order": "1",
+      "placeholder": "mongodb0.example.com:27017,mongodb1.example.com:27017,mongodb2.example.com:27017",
+      "required": true,
+      "secret": false,
+      "tags": [],
+      "type": "string"
+    },
+    "user": {
+      "componentProperty": true,
+      "deprecated": false,
+      "displayName": "Username",
+      "group": "common",
+      "javaType": "java.lang.String",
+      "kind": "property",
+      "label": "",
+      "labelHint": "Username for the database connection.",
+      "order": "2",
+      "required": true,
+      "secret": false,
+      "tags": [],
+      "type": "string"
+    },
+    "password": {
+      "componentProperty": true,
+      "deprecated": false,
+      "displayName": "Password",
+      "group": "security",
+      "javaType": "java.lang.String",
+      "kind": "property",
+      "label": "common,security",
+      "labelHint": "Password for the database connection.",
+      "order": "3",
+      "required": true,
+      "secret": true,
+      "tags": [],
+      "type": "string"
+    },
+    "adminDB": {
+      "componentProperty": true,
+      "deprecated": false,
+      "displayName": "Administration database",
+      "group": "common",
+      "javaType": "java.lang.String",
+      "kind": "property",
+      "label": "admin",
+      "labelHint": "Administration database used to grant permissions.",
+      "order": "4",
+      "placeholder": "admin",
+      "required": false,
+      "secret": false,
+      "tags": [],
+      "type": "string"
+    },
+    "replicaset": {
+      "componentProperty": true,
+      "deprecated": false,
+      "displayName": "Replica set name",
+      "group": "common",
+      "javaType": "java.lang.String",
+      "kind": "property",
+      "label": "",
+      "labelHint": "Name of the replica set used by the cluster.",
+      "order": "5",
+      "required": false,
+      "secret": false,
+      "tags": [],
+      "type": "string"
+    },
+    "database": {
+      "componentProperty": true,
+      "deprecated": false,
+      "displayName": "Database",
+      "group": "common",
+      "javaType": "java.lang.String",
+      "kind": "property",
+      "label": "Database to be used in this connection",
+      "labelHint": "Database to be used by this connection.",
+      "order": "6",
+      "placeholder": "test",
+      "required": true,
+      "secret": false,
+      "tags": [],
+      "type": "string"
+    }
+  },
+  "tags": [
+    "verifier"
+  ]
+}

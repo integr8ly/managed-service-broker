@@ -1,0 +1,124 @@
+// Red Hat Fuse titles
+:LinkCXFDevGuide: https://access.redhat.com/documentation/en-us/{productpkg}/{version}/html-single/apache_cxf_development_guide/index
+:NameOfCXFDevGuide: Apache CXF Development Guide
+
+:LinkCXFSecurityGuide: https://access.redhat.com/documentation/en-us/{productpkg}/{version}/html-single/apache_cxf_security_guide/index
+:NameOfCXFSecurityGuide: Apache CXF Security Guide
+
+:LinkKarafConsoleRef: https://access.redhat.com/documentation/en-us/{productpkg}/{version}/html-single/apache_karaf_console_reference/index
+:NameOfKarafConsoleRef: Apache Karaf Console Reference
+
+:LinkDeployKaraf: https://access.redhat.com/documentation/en-us/{productpkg}/{version}/html-single/deploying_into_apache_karaf/index
+:NameOfDeployKaraf: Deploying into Apache Karaf
+
+:LinkDeployEAP: https://access.redhat.com/documentation/en-us/{productpkg}/{version}/html-single/deploying_into_jboss_eap/index
+:NameOfDeployEAP: Deploying into JBoss EAP
+
+:LinkDeploySpringBoot: https://access.redhat.com/documentation/en-us/{productpkg}/{version}/html-single/deploying_into_spring_boot/index
+:NameOfDeploySpringBoot: Deploying into Spring Boot
+
+:LinkKarafInstallGuide: https://access.redhat.com/documentation/en-us/{productpkg}/{version}/html-single/installing_on_apache_karaf/index
+:NameOfKarafInstallGuide: Installing on Apache Karaf
+
+:LinkEAPInstallGuide: https://access.redhat.com/documentation/en-us/{productpkg}/{version}/html-single/installing_on_jboss_eap/index
+:NameOfEAPInstallGuide: Installing on JBoss EAP
+
+:LinkMigrationGuide: https://access.redhat.com/documentation/en-us/{productpkg}/{version}/html-single/migration_guide/index
+:NameOfMigrationGuide: Migration Guide
+
+:LinkManagingFuse: https://access.redhat.com/documentation/en-us/{productpkg}/{version}/html-single/managing_fuse/index
+:NameOfManagingFuse: Managing Fuse
+
+:LinkReleaseNotes: https://access.redhat.com/documentation/en-us/{productpkg}/{version}/html-single/release_notes/index
+:NameOfReleaseNotes: Release Notes
+
+:LinkReleaseNotesBOM: https://access.redhat.com/documentation/en-us/{productpkg}/{version}/html-single/release_notes/index#StandaloneDistrib-BOMs
+
+:LinkSecurityGuide: https://access.redhat.com/documentation/en-us/{productpkg}/{version}/html-single/apache_karaf_security_guide/index
+:NameOfSecurityGuide: Apache Karaf Security Guide
+
+:LinkTransactionsGuide: https://access.redhat.com/documentation/en-us/{productpkg}/{version}/html-single/apache_karaf_transaction_guide/index
+:NameOfTransactionsGuide: Apache Karaf Transaction Guide
+
+:LinkToolingTutorials: https://access.redhat.com/documentation/en-us/{productpkg}/{version}/html-single/tooling_tutorials/index
+:NameOfToolingTutorials: Tooling Tutorials
+
+:LinkToolingUserGuide: https://access.redhat.com/documentation/en-us/{productpkg}/{version}/html-single/tooling_user_guide/index
+:NameOfToolingUserGuide: Tooling User Guide
+
+:LinkCamelCompRef: https://access.redhat.com/documentation/en-us/{productpkg}/{version}/html-single/apache_camel_component_reference/index
+:NameOfCamelCompRef: Apache Camel Component Reference
+
+:LinkCamelDevGuide: https://access.redhat.com/documentation/en-us/{productpkg}/{version}/html-single/apache_camel_development_guide/index
+:NameOfCamelDevGuide: Apache Camel Development Guide
+
+:LinkFISGuide: https://access.redhat.com/documentation/en-us/{productpkg}/{version}/html-single/fuse_on_openshift_guide/
+:NameOfFISGuide: Fuse on OpenShift Guide
+
+// Fuse Online titles
+
+:LinkFuseOnlineTutorials: https://access.redhat.com/documentation/en-us/{productpkg}/{version}/html-single/fuse_online_sample_integration_tutorials/
+:NameOfFuseOnlineTutorials: Fuse Online Sample Integration Tutorials
+
+:LinkFuseOnlineIntegrationGuide: https://access.redhat.com/documentation/en-us/{productpkg}/{version}/html-single/integrating_applications_with_fuse_online/
+:NameOfFuseOnlineIntegrationGuide: Integrating Applications with Fuse Online
+
+:LinkFuseOnlineConnectorGuide: https://access.redhat.com/documentation/en-us/{productpkg}/{version}/html-single/connecting_fuse_online_to_applications_and_services/
+:NameOfFuseOnlineConnectorGuide: Connecting Fuse Online to Applications and Services
+
+:LinkFuseOnlineOnOCP: https://access.redhat.com/documentation/en-us/{productpkg}/{version}/html-single/installing_and_operating_fuse_online_on_openshift_container_platform/
+:NameOfFuseOnlineOnOCPGuide: Installing and Operating Fuse Online on OpenShift Container Platform
+
+//REVISIT Don't forget to add the guides from the tooling repo, FIS guide!
+
+// Developer Studio titles
+:DevStudioProdName: Red Hat CodeReady Studio
+:DevStudioProdNameShort: CodeReady Studio
+:DevStudioVersion: 12.11
+
+:LinkDevStudioInstallGuide: https://access.redhat.com/documentation/en-us/red_hat_codeready_studio/{DevStudioVersion}/html-single/installation_guide/
+:NameOfDevStudioInstallGuide: Installation Guide
+
+:LinkDevStudioRelNotes: https://access.redhat.com/documentation/en-us/red_hat_codeready_studio/{DevStudioVersion}/html-single/release_notes_and_known_issues/
+:NameOfDevStudioRelNotes: Release Notes and Known Issues
+
+
+// Container Development Kit (CDK) titles
+:CDKProdName: Red Hat Container Development Kit
+:CDKProdNameShort: Container Development Kit
+
+:LinkCDKGettingStarted: https://access.redhat.com/documentation/en-us/red_hat_container_development_kit/{cdk-version}/html-single/getting_started_guide/
+:NameOfCDKGettingStarted: Getting Started Guide
+
+// Red Hat Single Sign-On titles
+:RHSSOProdName: Red Hat Single Sign-On
+:RHSSOProdNameShort: Single Sign-On
+
+// Red Hat 3scale API Management titles
+:3scaleProdName: Red Hat 3scale API Management
+:3scaleProdNameShort: 3scale
+:3scaleVersion: 2.5
+
+:Link3scaleServiceDiscovery: https://access.redhat.com/documentation/en-us/red_hat_3scale_api_management/{3scaleVersion}/html-single/service_discovery/
+:NameOf3scaleServiceDiscovery: Admin Portal Guide
+
+//Red Hat Integration titles
+:IntegrationVersion: 2019-07
+
+:LinkIntegrationRelNotes: https://access.redhat.com/documentation/en-us/red_hat_integration/{IntegrationVersion}/html-single/release_notes/
+:NameIntegrationRelNotes: Release Notes
+
+:LinkIntegrationGetStart: https://access.redhat.com/documentation/en-us/red_hat_integration/{IntegrationVersion}/html-single/getting_started_with_apis_in_red_hat_integration/
+:NameIntegrationGetStart: Getting Started with APIs in Red Hat Integration
+
+:LinkIntegrationDevDeploy: https://access.redhat.com/documentation/en-us/red_hat_integration/{IntegrationVersion}/html-single/developing_and_deploying_apis_with_red_hat_integration/
+:NameIntegrationDevDeploy: Developing and Deploying APIs with Red Hat Integration
+
+:LinkIntegrationMonitor: https://access.redhat.com/documentation/en-us/red_hat_integration/{IntegrationVersion}/html-single/monitoring_red_hat_integration/
+:NameIntegrationMonitor: Monitoring Red Hat Integration
+
+:LinkIntegrationData: https://access.redhat.com/documentation/en-us/red_hat_integration/{IntegrationVersion}/html-single/data_virtualization/
+:NameIntegrationData: Data Integration
+
+:LinkDesigningAPIs: https://access.redhat.com/documentation/en-us/red_hat_integration/{IntegrationVersion}/html-single/designing_apis_with_api_designer/
+:NameDesigningAPIs: Designing APIs with API Designer

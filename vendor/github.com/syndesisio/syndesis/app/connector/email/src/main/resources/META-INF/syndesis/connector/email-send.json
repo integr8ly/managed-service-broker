@@ -1,0 +1,265 @@
+{
+  "actions": [
+    {
+      "actionType": "connector",
+      "description": "Send messages to the email account that this connection is authorized to access.",
+      "descriptor": {
+        "connectorCustomizers": [
+          "io.syndesis.connector.email.customizer.EMailSendCustomizer"
+        ],
+        "connectorFactory": "io.syndesis.connector.email.component.EMailComponentFactory",
+        "inputDataShape": {
+          "kind": "java",
+          "name": "EmailMessage",
+          "type": "io.syndesis.connector.email.model.EMailMessageModel"
+        },
+        "outputDataShape": {
+          "kind": "none"
+        },
+        "propertyDefinitionSteps": [
+          {
+            "description": "Specify the email messages that you want to send.",
+            "name": "Send messages to Email",
+            "properties": {
+              "bcc": {
+                "deprecated": false,
+                "displayName": "Email bcc",
+                "group": "producer",
+                "javaType": "java.lang.String",
+                "kind": "parameter",
+                "label": "producer",
+                "labelHint": "One or more comma-separated email addresses to send a blind copy of the email to.",
+                "order": "6",
+                "required": false,
+                "secret": false,
+                "type": "string"
+              },
+              "cc": {
+                "deprecated": false,
+                "displayName": "Email cc",
+                "group": "producer",
+                "javaType": "java.lang.String",
+                "kind": "parameter",
+                "label": "producer",
+                "labelHint": "One or more comma-separated email addresses to send a copy of the email to.",
+                "order": "5",
+                "required": false,
+                "secret": false,
+                "type": "string"
+              },
+              "from": {
+                "deprecated": false,
+                "displayName": "Email from",
+                "group": "producer",
+                "javaType": "java.lang.String",
+                "kind": "parameter",
+                "label": "producer",
+                "labelHint": "Email address of the sender (must be valid email address to avoid sender verification failure)",
+                "order": "2",
+                "required": true,
+                "secret": false,
+                "type": "string"
+              },
+              "priority": {
+                "defaultValue": "injectedData",
+                "deprecated": false,
+                "displayName": "Parameter Priority",
+                "enum": [
+                  {
+                    "label": "Input Values",
+                    "value": "inputValues"
+                  },
+                  {
+                    "label": "Consumed Data",
+                    "value": "consumedData"
+                  }
+                ],
+                "group": "producer",
+                "javaType": "java.lang.String",
+                "kind": "parameter",
+                "label": "producer",
+                "labelHint": "Whether the input values above or the consumed data gets priority in being applied to the generated emails",
+                "order": "7",
+                "required": false,
+                "secret": false,
+                "type": "string"
+              },
+              "subject": {
+                "deprecated": false,
+                "displayName": "Email subject",
+                "group": "producer",
+                "javaType": "java.lang.String",
+                "kind": "parameter",
+                "label": "producer",
+                "labelHint": "The text to insert in the subject line of the email.",
+                "order": "3",
+                "required": false,
+                "secret": false,
+                "type": "string"
+              },
+              "text": {
+                "deprecated": false,
+                "displayName": "Email text",
+                "group": "producer",
+                "javaType": "java.lang.String",
+                "kind": "parameter",
+                "label": "producer",
+                "labelHint": "The email message that you want to send.",
+                "order": "4",
+                "required": false,
+                "secret": false,
+                "type": "textarea"
+              },
+              "to": {
+                "deprecated": false,
+                "displayName": "Email to",
+                "group": "producer",
+                "javaType": "java.lang.String",
+                "kind": "parameter",
+                "label": "producer",
+                "labelHint": "One or more comma-separated email addresses to send the email to.",
+                "order": "1",
+                "required": false,
+                "secret": false,
+                "type": "string"
+              }
+            }
+          }
+        ]
+      },
+      "id": "io.syndesis:email-send-connector",
+      "name": "Send Email",
+      "pattern": "To"
+    }
+  ],
+  "componentScheme": "email-send",
+  "configuredProperties": {
+    "protocol": "smtp"
+  },
+  "dependencies": [
+    {
+      "id": "@project.groupId@:@project.artifactId@:@project.version@",
+      "type": "MAVEN"
+    }
+  ],
+  "description": "Send email messages.",
+  "icon": "assets:email-send.svg",
+  "id": "email-send",
+  "metadata": {},
+  "name": "Send Email (smtp)",
+  "properties": {
+    "host": {
+      "componentProperty": true,
+      "deprecated": false,
+      "description": "The hostname of the email server.",
+      "displayName": "Email Host Name",
+      "group": "common",
+      "javaType": "java.lang.String",
+      "kind": "parameter",
+      "label": "common",
+      "order": "1",
+      "required": true,
+      "secret": false,
+      "type": "string"
+    },
+    "password": {
+      "componentProperty": true,
+      "deprecated": false,
+      "displayName": "Password",
+      "group": "security",
+      "javaType": "java.lang.String",
+      "kind": "parameter",
+      "label": "common,security",
+      "labelHint": "Specify the password for the email account that this connection is authorized to access.",
+      "order": "4",
+      "required": true,
+      "secret": true,
+      "type": "string"
+    },
+    "port": {
+      "componentProperty": true,
+      "deprecated": false,
+      "description": "The port of the email server.",
+      "displayName": "Email Server Port Number",
+      "group": "common",
+      "javaType": "java.lang.Integer",
+      "kind": "parameter",
+      "label": "common",
+      "order": "2",
+      "required": true,
+      "secret": false,
+      "type": "integer"
+    },
+    "secureType": {
+      "componentProperty": true,
+      "defaultValue": "None",
+      "deprecated": false,
+      "displayName": "Security Method",
+      "enum": [
+        {
+          "label": "None",
+          "value": "None"
+        },
+        {
+          "label": "StartTLS",
+          "value": "StartTLS"
+        },
+        {
+          "label": "SSL / TLS",
+          "value": "SSL/TLS"
+        }
+      ],
+      "group": "security",
+      "javaType": "java.lang.String",
+      "kind": "parameter",
+      "label": "security",
+      "labelHint": "Specify what security protocol (if any) the connection requires",
+      "order": "5",
+      "required": false,
+      "secret": false,
+      "type": "string"
+    },
+    "serverCertificate": {
+      "componentProperty": true,
+      "deprecated": false,
+      "description": "If the SSL email server is internal and possesses a self-signed certificate then enable SSL by adding the certificate here.",
+      "displayName": "Server Certificate",
+      "group": "security",
+      "javaType": "java.lang.String",
+      "kind": "parameter",
+      "label": "common,security",
+      "order": "6",
+      "relation": [
+        {
+          "action": "DISABLE",
+          "when": [
+            {
+              "id": "secureType",
+              "value": "None"
+            }
+          ]
+        }
+      ],
+      "required": false,
+      "secret": false,
+      "type": "textarea"
+    },
+    "username": {
+      "componentProperty": true,
+      "deprecated": false,
+      "displayName": "User Name",
+      "group": "security",
+      "javaType": "java.lang.String",
+      "kind": "parameter",
+      "label": "common,security",
+      "labelHint": "Specify the user name for the email account that this connection is authorized to access.",
+      "order": "3",
+      "required": true,
+      "secret": false,
+      "type": "string"
+    }
+  },
+  "tags": [
+    "verifier"
+  ]
+}

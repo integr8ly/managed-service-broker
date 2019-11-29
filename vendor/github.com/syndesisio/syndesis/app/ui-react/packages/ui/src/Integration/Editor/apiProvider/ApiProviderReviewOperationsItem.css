@@ -1,0 +1,7 @@
+@media (min-width: 992px) {
+  .api-provider-review-operations-item .list-view-pf-actions {
+    min-width: 20%;
+    text-align: right;
+  }
+}
+

@@ -1,0 +1,159 @@
+- apiVersion: image.openshift.io/v1
+  kind: ImageStream
+  metadata:
+    name: {{ .Images.Syndesis.Rest }}
+    labels:
+      app: syndesis
+      syndesis.io/app: syndesis
+      syndesis.io/type: infrastructure
+      syndesis.io/component: syndesis-server
+  spec:
+    tags:
+      {{if .Syndesis.Spec.DevSupport}}
+    - name: "latest"
+      from:
+        kind: ImageStreamTag
+        name: '{{ .Images.Syndesis.Rest }}:latest'
+      {{else}}
+    - name: "{{ .Syndesis.Spec.Components.Server.Tag }}"
+      from:
+        kind: DockerImage
+        name: '{{ .Syndesis.Spec.Components.Server.Registry }}/{{ .Syndesis.Spec.Components.Server.ImagePrefix }}/{{ .Images.Syndesis.Rest }}:{{ .Syndesis.Spec.Components.Server.Tag }}'
+      {{if .Syndesis.Spec.Components.Scheduled}}
+      importPolicy:
+        scheduled: true
+      {{end}}
+      {{end}}
+- apiVersion: image.openshift.io/v1
+  kind: ImageStream
+  metadata:
+    name: {{ .Images.Syndesis.Ui }}
+    labels:
+      app: syndesis
+      syndesis.io/app: syndesis
+      syndesis.io/type: infrastructure
+      syndesis.io/component: syndesis-ui
+  spec:
+    tags:
+      {{if .Syndesis.Spec.DevSupport}}
+    - name: "latest"
+      from:
+        kind: ImageStreamTag
+        name: '{{ .Images.Syndesis.Ui }}:latest'
+      {{else}}
+    - name: "{{ .Syndesis.Spec.Components.UI.Tag }}"
+      from:
+        kind: DockerImage
+        name: '{{ .Syndesis.Spec.Components.UI.Registry }}/{{ .Syndesis.Spec.Components.UI.ImagePrefix }}/{{ .Images.Syndesis.Ui }}:{{ .Syndesis.Spec.Components.UI.Tag }}'
+      {{if .Syndesis.Spec.Components.Scheduled}}
+      importPolicy:
+        scheduled: true
+      {{end}}
+      {{end}}
+- apiVersion: image.openshift.io/v1
+  kind: ImageStream
+  metadata:
+    name: {{ .Images.Syndesis.Verifier }}
+    labels:
+      app: syndesis
+      syndesis.io/app: syndesis
+      syndesis.io/type: infrastructure
+      syndesis.io/component: syndesis-meta
+  spec:
+    tags:
+      {{if .Syndesis.Spec.DevSupport}}
+    - name: "latest"
+      from:
+        kind: ImageStreamTag
+        name: '{{ .Images.Syndesis.Verifier }}:latest'
+      {{else}}
+    - name: "{{ .Syndesis.Spec.Components.Meta.Tag }}"
+      from:
+        kind: DockerImage
+        name: '{{ .Syndesis.Spec.Components.Meta.Registry }}/{{ .Syndesis.Spec.Components.Meta.ImagePrefix }}/{{ .Images.Syndesis.Verifier }}:{{ .Syndesis.Spec.Components.Meta.Tag }}'
+      {{if .Syndesis.Spec.Components.Scheduled}}
+      importPolicy:
+        scheduled: true
+      {{end}}
+      {{end}}
+- apiVersion: image.openshift.io/v1
+  kind: ImageStream
+  metadata:
+    name: {{ .Images.Support.OAuthProxy }}
+    labels:
+      app: syndesis
+      syndesis.io/app: syndesis
+      syndesis.io/type: infrastructure
+      syndesis.io/component: syndesis-oauthproxy
+  spec:
+    tags:
+    - from:
+        kind: DockerImage
+        name: '{{.Images.OAuthProxyImagePrefix}}/{{ .Images.Support.OAuthProxyImage }}:{{ .Syndesis.Spec.Components.Oauth.Tag }}'
+      importPolicy:
+        scheduled: true
+      name: "{{ .Syndesis.Spec.Components.Oauth.Tag }}"
+- apiVersion: image.openshift.io/v1
+  kind: ImageStream
+  metadata:
+    name: {{ .Images.Support.Prometheus }}
+    labels:
+      app: syndesis
+      syndesis.io/app: syndesis
+      syndesis.io/type: infrastructure
+      syndesis.io/component: syndesis-prometheus
+  spec:
+    tags:
+    - from:
+        kind: DockerImage
+        name: '{{.Images.PrometheusImagePrefix}}/{{ .Images.Support.Prometheus }}:{{ .Syndesis.Spec.Components.Prometheus.Tag }}'
+      {{if .Syndesis.Spec.Components.Scheduled}}
+      importPolicy:
+        scheduled: true
+      {{end}}
+      name: "{{ .Syndesis.Spec.Components.Prometheus.Tag }}"
+- apiVersion: image.openshift.io/v1
+  kind: ImageStream
+  metadata:
+    name: {{ .Images.Support.PostgresExporter }}
+    labels:
+      app: syndesis
+      syndesis.io/app: syndesis
+      syndesis.io/type: infrastructure
+      syndesis.io/component: syndesis-db-metrics
+  spec:
+    tags:
+    - from:
+        kind: DockerImage
+        name: '{{ .Syndesis.Spec.Components.PostgresExporter.Registry }}/{{ .Syndesis.Spec.Components.PostgresExporter.ImagePrefix }}/{{ .Images.Support.PostgresExporter }}:{{ .Syndesis.Spec.Components.PostgresExporter.Tag }}'
+      {{if .Syndesis.Spec.Components.Scheduled}}
+      importPolicy:
+        scheduled: true
+      {{end}}
+      name: "{{ .Syndesis.Spec.Components.PostgresExporter.Tag }}"
+- apiVersion: image.openshift.io/v1
+  kind: ImageStream
+  metadata:
+    name: {{ .Images.Syndesis.S2i }}
+    labels:
+      app: syndesis
+      syndesis.io/app: syndesis
+      syndesis.io/type: infrastructure
+      syndesis.io/component: s2i-java
+  spec:
+    tags:
+      {{if .Syndesis.Spec.DevSupport}}
+    - name: "latest"
+      from:
+        kind: ImageStreamTag
+        name: '{{ .Images.Syndesis.S2i }}:latest'
+      {{else}}
+    - name: "{{ .Syndesis.Spec.Components.S2I.Tag }}"
+      from:
+        kind: DockerImage
+        name: '{{ .Syndesis.Spec.Components.S2I.Registry }}/{{ .Syndesis.Spec.Components.S2I.ImagePrefix }}/{{ .Images.Syndesis.S2i }}:{{ .Syndesis.Spec.Components.S2I.Tag }}'
+      {{if .Syndesis.Spec.Components.Scheduled}}
+      importPolicy:
+        scheduled: true
+      {{end}}
+      {{end}}
