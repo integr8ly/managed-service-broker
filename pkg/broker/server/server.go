@@ -19,12 +19,13 @@ package server
 import (
 	"context"
 	"crypto/tls"
+	"net/http"
+	"time"
+
 	brokerapi "github.com/integr8ly/managed-service-broker/pkg/broker"
 	"github.com/integr8ly/managed-service-broker/pkg/broker/controller"
 	"github.com/integr8ly/managed-service-broker/pkg/broker/server/util"
 	apiErrors "k8s.io/apimachinery/pkg/api/errors"
-	"net/http"
-	"time"
 
 	"github.com/gorilla/mux"
 	glog "github.com/sirupsen/logrus"
@@ -139,7 +140,11 @@ func (s *server) getServiceInstanceLastOperation(w http.ResponseWriter, r *http.
 		}
 		util.WriteResponse(w, http.StatusOK, result)
 	} else {
-		glog.Infof("ServiceInstanceLastOperation for %s had status: %s", lor.InstanceId, result.State)
+		glog.Error(err.Error())
+
+		if result != nil {
+			glog.Infof("ServiceInstanceLastOperation for %s had status: %s", lor.InstanceId, result.State)
+		}
 		util.WriteErrorResponse(w, http.StatusBadRequest, err)
 	}
 }

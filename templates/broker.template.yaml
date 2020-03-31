@@ -450,12 +450,6 @@ objects:
       - apiGroups:
           - ""
         resources:
-          - serviceaccounts
-        verbs:
-          - impersonate
-      - apiGroups:
-          - ""
-        resources:
           - namespaces
         verbs:
           - get
@@ -511,6 +505,7 @@ objects:
           - daemonsets
           - deployments
           - deployments/scale
+          - deployments/finalizers
           - replicasets
           - replicasets/scale
           - statefulsets
@@ -527,6 +522,7 @@ objects:
       - apiGroups:
           - extensions
         resources:
+          - jobs
           - daemonsets
           - deployments
           - deployments/scale
@@ -535,6 +531,19 @@ objects:
           - replicasets
           - replicasets/scale
           - replicationcontrollers/scale
+        verbs:
+          - get
+          - list
+          - create
+          - update
+          - delete
+          - deletecollection
+          - watch
+          - patch
+      - apiGroups:
+          - batch
+        resources:
+          - jobs
         verbs:
           - get
           - list
@@ -727,11 +736,13 @@ objects:
           - delete
           - deletecollection
           - watch
+          - patch
       - apiGroups:
           - ""
         resources:
           - pods
           - services
+          - services/finalizers
           - endpoints
           - persistentvolumeclaims
           - configmaps
@@ -857,6 +868,18 @@ objects:
         resources:
           - roles
           - rolebindings
+        verbs:
+          - get
+          - list
+          - create
+          - update
+          - delete
+          - deletecollection
+          - watch
+      - apiGroups:
+          - authorization.openshift.io
+        resources:
+          - roles
         verbs:
           - get
           - list
