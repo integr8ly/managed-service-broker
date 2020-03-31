@@ -301,14 +301,6 @@
   version = "v1.0.1"
 
 [[projects]]
-  digest = "1:558fbf41e5cbae4a8072ca36c60390414cb281d812cf6a3f4f86e282fdc2cbaa"
-  name = "github.com/syndesisio/syndesis"
-  packages = ["install/operator/pkg/apis/syndesis/v1alpha1"]
-  pruneopts = ""
-  revision = "93d3f9927abe77c05f0840163236be1b93fa9a0e"
-  version = "1.8.12"
-
-[[projects]]
   branch = "master"
   digest = "1:6ef14be530be39b6b9d75d54ce1d546ae9231e652d9e3eef198cbb19ce8ed3e7"
   name = "golang.org/x/crypto"
@@ -542,6 +534,7 @@
   analyzer-name = "dep"
   analyzer-version = 1
   input-imports = [
+    "github.com/go-openapi/spec",
     "github.com/gorilla/mux",
     "github.com/openshift/api/apps/v1",
     "github.com/openshift/api/authorization/v1",
@@ -556,7 +549,6 @@
     "github.com/operator-framework/operator-sdk/pkg/util/k8sutil",
     "github.com/pkg/errors",
     "github.com/sirupsen/logrus",
-    "github.com/syndesisio/syndesis/install/operator/pkg/apis/syndesis/v1alpha1",
     "k8s.io/api/authentication/v1",
     "k8s.io/api/core/v1",
     "k8s.io/apimachinery/pkg/api/errors",
@@ -569,7 +561,9 @@
     "k8s.io/client-go/kubernetes/scheme",
     "k8s.io/client-go/rest",
     "k8s.io/client-go/tools/clientcmd",
+    "k8s.io/kube-openapi/pkg/common",
     "sigs.k8s.io/controller-runtime/pkg/client",
+    "sigs.k8s.io/controller-runtime/pkg/runtime/scheme",
   ]
   solver-name = "gps-cdcl"
   solver-version = 1
