@@ -1,9 +1,9 @@
 package fuse
 
 import (
+	synv1 "github.com/integr8ly/managed-service-broker/pkg/apis/syndesis/v1beta1"
 	brokerapi "github.com/integr8ly/managed-service-broker/pkg/broker"
 	authv1 "github.com/openshift/api/authorization/v1"
-	synv1 "github.com/syndesisio/syndesis/install/operator/pkg/apis/syndesis/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -94,8 +94,8 @@ func getUserViewRoleBindingObj(namespace, username string) *authv1.RoleBinding {
 func getFuseObj(deployNamespace, consumerNamespace string, integrationsLimit int) *synv1.Syndesis {
 	return &synv1.Syndesis{
 		TypeMeta: metav1.TypeMeta{
-			Kind:       "Syndesis",
-			APIVersion: "syndesis.io/v1alpha1",
+			Kind:       synv1.SchemaGroupVersionKind.Kind,
+			APIVersion: synv1.SchemeGroupVersion.Group + "/" + synv1.SchemeGroupVersion.Version,
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace:    deployNamespace,
@@ -103,17 +103,16 @@ func getFuseObj(deployNamespace, consumerNamespace string, integrationsLimit int
 			Annotations:  map[string]string{},
 		},
 		Spec: synv1.SyndesisSpec{
-			SarNamespace: consumerNamespace,
-			Integration: synv1.IntegrationSpec{
-				Limit: &integrationsLimit,
-			},
 			Components: synv1.ComponentsSpec{
-				Db:         synv1.DbConfiguration{},
-				Prometheus: synv1.PrometheusConfiguration{},
 				Server: synv1.ServerConfiguration{
-					Features: synv1.ServerFeatures{},
+					Features: synv1.ServerFeatures{
+						IntegrationLimit: integrationsLimit,
+					},
 				},
 				Meta: synv1.MetaConfiguration{},
+				Oauth: synv1.OauthConfiguration{
+					SarNamespace: consumerNamespace,
+				},
 			},
 		},
 	}

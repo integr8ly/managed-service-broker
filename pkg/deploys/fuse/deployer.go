@@ -4,16 +4,17 @@ import (
 	"archive/tar"
 	"compress/gzip"
 	"fmt"
-	synv1 "github.com/syndesisio/syndesis/install/operator/pkg/apis/syndesis/v1alpha1"
 	"io"
-	v1 "k8s.io/api/authentication/v1"
-	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/runtime/schema"
 	"net/http"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
+
+	synv1 "github.com/integr8ly/managed-service-broker/pkg/apis/syndesis/v1beta1"
+	v1 "k8s.io/api/authentication/v1"
+	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 
 	brokerapi "github.com/integr8ly/managed-service-broker/pkg/broker"
 	"github.com/integr8ly/managed-service-broker/pkg/clients/openshift"
@@ -156,7 +157,10 @@ func (fd *FuseDeployer) createOperatorResources(namespace string, client client.
 		}
 	}
 
-	if _, err := exec.Command(destBin, "install", "operator", "--wait", "-n", namespace).Output(); err != nil {
+	if output, err := exec.Command(destBin, "install", "operator", "--wait", "-n", namespace).Output(); err != nil {
+		if output != nil {
+			glog.Infof("Output: %s", string(output))
+		}
 		glog.Infof("failed to install fuse online operator in namespace %s", namespace)
 		return err
 	}
@@ -189,7 +193,7 @@ func (fd *FuseDeployer) ServiceInstanceLastOperation(req *brokerapi.LastOperatio
 		if fr == nil {
 			return nil, apiErrors.NewNotFound(schema.GroupResource{
 				Group:    synv1.SchemeGroupVersion.Group,
-				Resource: "Syndesis",
+				Resource: synv1.SchemaGroupVersionKind.Kind,
 			}, req.InstanceId)
 		}
 
@@ -275,7 +279,7 @@ func (fd *FuseDeployer) createFuseCustomResourceTemplate(namespace, userNamespac
 
 // Create the fuse custom resource
 func (fd *FuseDeployer) createFuseCustomResource(namespace string, fr *synv1.Syndesis) error {
-	fuseClient, _, err := k8sClient.GetResourceClient("syndesis.io/v1alpha1", "Syndesis", namespace)
+	fuseClient, _, err := k8sClient.GetResourceClient(synv1.SchemeGroupVersion.Group+"/"+synv1.SchemeGroupVersion.Version, synv1.SchemaGroupVersionKind.Kind, namespace)
 	if err != nil {
 		return err
 	}
@@ -300,7 +304,7 @@ func (fd *FuseDeployer) getRouteHostname(namespace string) string {
 
 // Get fuse resource in namespace
 func getFuse(ns string) (*synv1.Syndesis, error) {
-	fuseClient, _, err := k8sClient.GetResourceClient("syndesis.io/v1alpha1", "Syndesis", ns)
+	fuseClient, _, err := k8sClient.GetResourceClient(synv1.SchemeGroupVersion.Group+"/"+synv1.SchemeGroupVersion.Version, synv1.SchemaGroupVersionKind.Kind, ns)
 	if err != nil {
 		return nil, err
 	}
