@@ -17,7 +17,7 @@ func NewDeployer() *ApiCurioDeployer {
 }
 
 func (ac *ApiCurioDeployer) GetCatalogEntries() []*brokerapi.Service {
-	glog.Infof("Getting apicurio catalog entries")
+	glog.Infof("Getting apicurito catalog entries")
 	return getCatalogServicesObj()
 }
 
@@ -26,7 +26,7 @@ func (ac *ApiCurioDeployer) GetID() string {
 }
 
 func (ac *ApiCurioDeployer) Deploy(req *brokerapi.ProvisionRequest, async bool) (*brokerapi.ProvisionResponse, error) {
-	glog.Infof("Deploying apicurio from deployer, id: %s", req.InstanceId)
+	glog.Infof("Deploying apicurito from deployer, id: %s", req.InstanceId)
 
 	dashboardUrl := os.Getenv("APICURIO_DASHBOARD_URL")
 
@@ -45,6 +45,6 @@ func (ac *ApiCurioDeployer) ServiceInstanceLastOperation(req *brokerapi.LastOper
 
 	return &brokerapi.LastOperationResponse{
 		State:       brokerapi.StateSucceeded,
-		Description: "apicurio deployed successfully",
+		Description: "apicurito deployed successfully",
 	}, nil
 }
