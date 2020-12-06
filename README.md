@@ -24,6 +24,12 @@ $ make build_image <DOCKERORG=yourDockerOrg>
 $ make push <DOCKERORG=yourDockerOrg>
 ```
 
+#### Releasing a new Docker Image
+```
+$ make build_and_push TAG=<release version>
+```
+
+
 #### Deploy managed-service-broker
 An OpenShift template in the `templates` directory of this repo is used to deploy the broker to a running OpenShift cluster.
 This assumes that the [`svcat` command line tool](https://github.com/kubernetes-incubator/service-catalog/blob/master/docs/install.md) is installed.
